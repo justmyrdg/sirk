@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "partials/notices.html" import notices %}
+{% block head %}<meta name="description" content="FIPConnect event inquiries and bookings for Flare Infinity Productions.">{% endblock %}
+{% block body %}
+<div class="page {% block page_class %}{% endblock %}">
+  <header class="shell topbar">
+    <a class="brand" href="/" aria-label="FIPConnect home"><img class="brand-logo" src="{{ url_for('static', filename='images/logo_flare.png') }}" alt="Flare Infinity Productions"><span class="brand-divider" aria-hidden="true"></span><span class="brand-product">FIP<strong>Connect</strong><small>EVENT MANAGEMENT</small></span></a>
+    <nav class="nav" aria-label="Main navigation">
+      <a href="/">Home</a><a href="/availability">Availability</a><a href="/inquire">Inquire</a><a class="button button-small" href="/status">Check status</a>
+    </nav>
+  </header>
+  <main class="shell">
+    {% block main %}{% endblock %}
+  </main>
+  <footer class="footer"><div class="shell footer-inner"><span>© {{ today().year }} {{ landing.organizer }} · FIPConnect</span><span>Event inquiries, bookings & scheduling</span></div></footer>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/site.js') }}"></script>{% endblock %}

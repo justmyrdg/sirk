@@ -1,0 +1,17 @@
+{% extends "admin/base.html" %}
+{% set tabs = [("Dashboard", "⌂", "/"), ("Inquiries", "✉", "/inquiries"), ("Schedule", "▦", "/schedule"),
+               ("Services", "✦", "/services"), ("Analytics", "▥", "/analytics"), ("Landing page", "◇", "/landing")] %}
+{% block admin_main %}
+<div class="admin-layout shell">
+  <nav class="sidebar" aria-label="Admin navigation">
+    <div class="sidebar-title">Workspace</div>
+    {% for name, icon, href in tabs %}
+    <a href="{{ href }}" class="{{ 'active' if active_tab == name else '' }}" {% if active_tab == name %}aria-current="page"{% endif %}><span>{{ icon }}</span>{{ name }}</a>
+    {% endfor %}
+  </nav>
+  <main class="admin-main">
+    {{ notices(error) }}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

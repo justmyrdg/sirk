@@ -1,0 +1,13 @@
+{% extends "client/layout.html" %}
+{% block title %}Inquiry received — FIPConnect{% endblock %}
+{% block main %}
+<div class="auth-wrap" style="min-height:60vh">
+  <section class="auth-card">
+    <span class="eyebrow">Inquiry received</span>
+    <h1>Thank you{% if first_name %}, {{ first_name }}{% endif %}.</h1>
+    <p>Your event inquiry has been sent to the FIP team. This does not confirm or reserve your date.</p>
+    <div class="notice notice-success"><strong>Your reference code: {{ reference }}</strong><br>Save this code to check your inquiry status.</div>
+    <a class="button" style="margin-top:16px" href="/status">Check inquiry status →</a>
+  </section>
+</div>
+{% endblock %}

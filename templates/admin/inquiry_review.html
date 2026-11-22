@@ -1,0 +1,31 @@
+{% extends "admin/layout.html" %}
+{% from "partials/admin_tables.html" import csrf_field %}
+{% from "partials/status_pill.html" import pill %}
+{% block page_title %}Review inquiry{% endblock %}
+{% block content %}
+<div class="admin-heading">
+  <div><span class="eyebrow">Review inquiry</span><h1>{{ inquiry.event_name }}</h1><p>Submitted {{ inquiry.created_at | date_ph }} · reference {{ inquiry.reference }} · {{ pill(inquiry.status) }}</p></div>
+  <a class="button button-quiet button-small" href="/inquiries">← All inquiries</a>
+</div>
+<section class="panel">
+  <div class="modal-details">
+    <strong>{{ inquiry.event_name }}</strong>
+    <span>{{ inquiry.name }} · {{ inquiry.email }} · {{ inquiry.phone }}</span>
+    <span>{{ inquiry.event_date | date_ph }} · {{ inquiry.venue or "Venue not provided" }}</span>
+    <span>{{ (inquiry.guests ~ " guests") if inquiry.guests else "Guest count not provided" }} · {{ ((inquiry.budget | peso) ~ " budget") if inquiry.budget is not none else "Budget not provided" }}</span>
+    <span>{{ inquiry.service or "No service selected" }}</span>
+    {% if inquiry.notes %}<p>{{ inquiry.notes }}</p>{% endif %}
+  </div>
+  <form method="post" action="/inquiries/{{ inquiry.id }}">
+    {{ csrf_field() }}
+    <div class="field"><label for="review-status">Inquiry status</label>
+      <select id="review-status" name="status">
+        {% for status in statuses %}<option {% if status == form.status %}selected{% endif %}>{{ status }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field" style="margin-top:14px"><label for="expected-revenue">Expected revenue if approved (₱)</label><input id="expected-revenue" name="expectedRevenue" type="number" min="0" step="100" value="{{ form.expectedRevenue }}" placeholder="Optional"></div>
+    <p class="field-hint">Approving confirms the booking and marks the date unavailable. The client is notified by email/SMS when those are set up.</p>
+    <div class="modal-actions"><a class="button button-quiet" href="/inquiries">Cancel</a><button class="button">Save status</button></div>
+  </form>
+</section>
+{% endblock %}

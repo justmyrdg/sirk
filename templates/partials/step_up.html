@@ -1,0 +1,35 @@
+{#
+  step_up(next_url, usable_face, reset_allowed, what, allow_password=True)
+  Step 1 of a sensitive action: the signed-in admin confirms it's really them.
+  - usable face            -> face scan matched against their own saved face
+  - no usable face:
+      allow_password and an operator allowed a reset -> password
+      otherwise                                       -> how to get the reset allowed
+#}
+{% macro step_up(next_url, usable_face, reset_allowed, what, allow_password=True) %}
+<section class="panel step-up">
+  <div class="panel-header"><h2>Step 1 · Confirm it's you</h2></div>
+  {% if usable_face %}
+    <p>Before you {{ what }}, scan your face. It must match the face saved on your account, so a stolen password alone can't do this.</p>
+    <button class="button" type="button" data-flow="verify" data-next="{{ next_url }}">Scan my face to confirm</button>
+    {% include "partials/face_camera.html" %}
+  {% elif not allow_password %}
+    <p>Your saved face is from an older version and can't be checked. <a class="text-link" href="/account/face">Re-enroll your face</a> first, then come back to {{ what }}.</p>
+  {% elif reset_allowed %}
+    <p>Your saved face is from an older version and can't be checked. A face reset has been allowed on the server, so confirm with your password before you {{ what }}.</p>
+    <form data-flow="verify-password" data-next="{{ next_url }}">
+      <div class="field"><label for="step-up-password">Your password</label><input id="step-up-password" name="password" type="password" required autocomplete="current-password" aria-describedby="step-up-error"></div>
+      <button class="button">Confirm with password</button>
+    </form>
+    <div class="notice notice-danger" id="step-up-error" data-camera-error role="alert" hidden></div>
+  {% else %}
+    <p>Your saved face is from an older version and can't be checked, and a password alone isn't enough to {{ what }}. Ask whoever runs the server to allow a one-time face reset:</p>
+    <pre class="command"><code>flask --app app allow-face-reset {{ current_admin.email }}</code></pre>
+    <p class="field-hint">Then reload this page and confirm with your password. The permission lasts one hour and is used up when you re-enroll.</p>
+  {% endif %}
+</section>
+{% endmacro %}
+
+{% macro confirmed(seconds_left) %}
+<div class="notice notice-success" role="status">Confirmed. You have about {{ ((seconds_left + 59) // 60) }} minute{{ "" if (seconds_left + 59) // 60 == 1 else "s" }} to finish.</div>
+{% endmacro %}

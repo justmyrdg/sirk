@@ -1,0 +1,8 @@
+{% macro lead_time_notice(earliest, lead_days) %}
+{% if lead_days %}
+<div class="notice notice-lead" role="note">
+  <strong>Book at least {{ lead_days }} day{{ "" if lead_days == 1 else "s" }} ahead.</strong>
+  The earliest date you can request is {{ earliest | date_long }}.
+</div>
+{% endif %}
+{% endmacro %}

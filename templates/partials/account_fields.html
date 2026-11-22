@@ -1,0 +1,5 @@
+{% macro account_fields(prefix) %}
+<div class="field"><label for="{{ prefix }}-email">Email (login username)</label><input id="{{ prefix }}-email" name="email" type="email" required maxlength="254" autocomplete="off"></div>
+<div class="field"><label for="{{ prefix }}-password">Password</label><input id="{{ prefix }}-password" name="password" type="password" required minlength="8" autocomplete="new-password"></div>
+<div class="field"><label for="{{ prefix }}-confirm">Confirm password</label><input id="{{ prefix }}-confirm" name="confirm" type="password" required minlength="8" autocomplete="new-password"></div>
+{% endmacro %}

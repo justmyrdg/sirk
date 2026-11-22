@@ -1,0 +1,49 @@
+{% extends "client/layout.html" %}
+{% block page_class %}home-page{% endblock %}
+{% set headline_start, _, headline_rest = landing.headline.partition(",") %}
+{% set photos = [
+  ("img5.jpg", "Flare Infinity Productions team at the Lima Job Fair", "Lima Job Fair"),
+  ("img4.jpg", "Flare Infinity Productions team at Batangas City Hall", "Batangas City"),
+  ("img3.jpg", "Flare Infinity Productions team gathering", "Team moments"),
+  ("img2.jpg", "Flare Infinity Productions team outdoors", "Flare team"),
+  ("img1.jpg", "Flare Infinity Productions team at an event", "Event day"),
+] %}
+{% block main %}
+{{ notices() }}
+<section class="hero">
+  <div>
+    <span class="eyebrow">Flare Infinity Productions</span>
+    <h1 class="serif">{{ headline_start }}{% if headline_rest %}<em>,{{ headline_rest }}</em>{% endif %}</h1>
+    <p class="hero-copy">{{ landing.intro }}</p>
+    <div class="hero-actions"><a class="button" href="/inquire">Start an inquiry <span>→</span></a><a class="button button-outline" href="/availability">View available dates</a></div>
+  </div>
+  <div class="hero-art"><div class="event-card"><div class="event-card-center"><span>✿</span><strong>Your day.<br>Your story.</strong><small>Made unforgettable</small></div></div><div class="hero-badge">Made for your moments<span>Thoughtful event experiences</span></div></div>
+</section>
+
+<section class="gallery-section">
+  <div class="shell">
+    <div class="section-heading"><div><span class="eyebrow">Life at Flare</span><h2 class="serif">The people behind every moment.</h2></div><p>A look at the Flare Infinity Productions team and the events we bring to life.</p></div>
+    <div class="gallery-controls"><span class="gallery-count" aria-live="polite">1 / {{ photos | length }}</span><div><button class="gallery-arrow" type="button" data-gallery-move="-1" aria-label="Previous photo">←</button><button class="gallery-arrow" type="button" data-gallery-move="1" aria-label="Next photo">→</button></div></div>
+    <div class="photo-gallery" aria-label="Flare team photos">
+      {% for file, alt, caption in photos %}
+      <figure class="gallery-photo" aria-label="Photo {{ loop.index }} of {{ photos | length }}"><img src="{{ url_for('static', filename='images/' ~ file) }}" alt="{{ alt }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}><figcaption>{{ caption }}</figcaption></figure>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-heading"><div><span class="eyebrow">What we do</span><h2 class="serif">Events with intention.</h2></div><p>Tell us what you are celebrating. Our team will help shape the details around your vision.</p></div>
+  {% if services %}
+  <div class="service-grid">
+    {% for service in services %}
+    <article class="service-card"><div class="service-icon">{{ ["✧", "▧", "❋"][loop.index0 % 3] }}</div><h3>{{ service.name }}</h3><p>{{ service.description }}</p></article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><strong>Services coming soon</strong>Please check back for updates.</div>
+  {% endif %}
+</section>
+
+<section class="cta-band"><div><h2>Have a date in mind?</h2><p>Check availability and tell us a little about your event.</p></div><a class="button" href="/inquire">Plan your event →</a></section>
+{% endblock %}

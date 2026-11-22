@@ -1,0 +1,31 @@
+{% extends "client/layout.html" %}
+{% block title %}Inquire — FIPConnect{% endblock %}
+{% block main %}
+<div class="page-header"><span class="eyebrow">Let's celebrate</span><h1 class="serif">Tell us about your event.</h1><p>Share the details you know so far. Our team will review your inquiry and follow up.</p></div>
+{% from "partials/lead_time.html" import lead_time_notice %}{{ lead_time_notice(earliest, lead_days) }}
+{{ notices(error) }}
+<div class="layout-two">
+  <form class="content-card form-grid" method="post" action="/inquire">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field"><label for="client-name">Your name *</label><input id="client-name" name="name" autocomplete="name" required maxlength="120" value="{{ form.name }}"></div>
+    <div class="field"><label for="client-email">Email address *</label><input id="client-email" name="email" type="email" autocomplete="email" required maxlength="160" value="{{ form.email }}"></div>
+    <div class="field"><label for="client-phone">Contact number *</label><input id="client-phone" name="phone" type="tel" autocomplete="tel" required maxlength="40" value="{{ form.phone }}"></div>
+    <div class="field"><label for="event-name">Event name or type *</label><input id="event-name" name="eventName" placeholder="e.g. Wedding, Birthday" required maxlength="120" value="{{ form.eventName }}"></div>
+    <div class="field"><label for="event-date">Preferred date *</label><input id="event-date" name="eventDate" type="date" min="{{ earliest.isoformat() }}" value="{{ form.eventDate }}" required aria-describedby="event-date-hint"><span class="field-hint" id="event-date-hint">Earliest: {{ earliest | date_long }}. <a class="text-link" href="/availability">Check available dates →</a> Availability is confirmed by our team.</span></div>
+    <div class="field"><label for="event-venue">Venue or location</label><input id="event-venue" name="venue" placeholder="City or venue" maxlength="180" value="{{ form.venue }}"></div>
+    <div class="field"><label for="event-guests">Estimated guests</label><input id="event-guests" name="guests" type="number" min="1" max="100000" placeholder="e.g. 100" value="{{ form.guests }}"></div>
+    <div class="field"><label for="event-budget">Estimated budget (₱)</label><input id="event-budget" name="budget" type="number" min="0" step="1000" placeholder="Optional" value="{{ form.budget }}"></div>
+    <div class="field field-wide"><label for="event-service">Service of interest</label>
+      <select id="event-service" name="service">
+        <option value="">Select a service (optional)</option>
+        {% for service in services %}<option value="{{ service.name }}" {% if form.service == service.name %}selected{% endif %}>{{ service.name }}</option>{% endfor %}
+        <option value="Other" {% if form.service == "Other" %}selected{% endif %}>Other</option>
+      </select>
+    </div>
+    <div class="field field-wide"><label for="event-notes">Additional requirements</label><textarea id="event-notes" name="notes" maxlength="2000" placeholder="Tell us about your vision, schedule, or anything else we should know.">{{ form.notes }}</textarea></div>
+    <label class="checkline field-wide"><input name="terms" type="checkbox" required {% if form.terms %}checked{% endif %}><span>I agree that FIP may use the details above to review and respond to my inquiry. Submitting this form does not confirm a booking.</span></label>
+    <button class="button field-wide" type="submit">Submit event inquiry →</button>
+  </form>
+  <aside class="info-card"><h2>What happens next?</h2><p>Your inquiry is sent to the FIP team for review. We will follow up using the contact details you provide.</p><ul><li>Submitting an inquiry does not reserve your date.</li><li>Our team confirms availability and booking details with you.</li><li>Save the reference code shown after submission to check your status.</li></ul><a class="text-link" href="/availability">Browse the availability calendar →</a></aside>
+</div>
+{% endblock %}

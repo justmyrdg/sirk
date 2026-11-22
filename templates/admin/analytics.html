@@ -1,0 +1,48 @@
+{% extends "admin/layout.html" %}
+{% from "partials/admin_tables.html" import bookings_table %}
+{% from "partials/chart.html" import chart %}
+{% block page_title %}Analytics{% endblock %}
+{% macro top(data) -%}
+  {%- set values = data.series[0]["values"] -%}
+  {%- if values -%}{%- set best = values | max -%}{{ data.labels[values.index(best)] }}|{{ best }}{%- endif -%}
+{%- endmacro %}
+{% block content %}
+<div class="admin-heading"><div><span class="eyebrow">Business insights</span><h1>Analytics</h1><p>Descriptive insights calculated by the Flask server from stored inquiry and booking records.</p></div></div>
+<div class="stats-grid">
+  <article class="stat-card"><span>Inquiries</span><strong>{{ inquiry_count }}</strong><small>Recorded submissions</small></article>
+  <article class="stat-card"><span>Bookings</span><strong>{{ booking_count }}</strong><small>Confirmed or completed</small></article>
+  <article class="stat-card"><span>Conversion rate</span><strong>{{ report.conversionRate }}%</strong><small>Of resolved inquiries</small></article>
+  <article class="stat-card"><span>Recorded revenue</span><strong>{{ report.actualRevenue | peso }}</strong><small>Manually entered actual revenue</small></article>
+</div>
+
+<div class="chart-grid">
+  {% set data = charts.event_months %}
+  {% set busiest = top(data).split("|") %}
+  {{ chart("event-months", "Inquiry volume by event month", (data.labels | length) ~ " recent event months; busiest " ~ ((busiest[0] ~ "-01") | month_ph) ~ " with " ~ busiest[1] ~ "." if data.labels else "", data,
+           None if data.labels else "Inquiry trends will appear after clients submit inquiries.") }}
+
+  {% set data = charts.event_types %}
+  {% set busiest = top(data).split("|") %}
+  {{ chart("event-types", "Most requested event types", "Most requested: " ~ busiest[0] ~ " (" ~ busiest[1] ~ ")." if data.labels else "", data,
+           None if data.labels else "Event-type patterns will appear after inquiries are submitted.", label_format="item") }}
+</div>
+
+<div class="chart-grid">
+  {% set data = charts.booking_months %}
+  {{ chart("booking-months", "Bookings by event month",
+           ("Peak: " ~ ((report.peakBookingMonth ~ "-01") | month_ph) ~ " with " ~ report.peakBookingCount ~ " booking" ~ ("" if report.peakBookingCount == 1 else "s") ~ ".") if report.peakBookingMonth else "", data,
+           None if data.labels else "Booking seasonality will appear when events are confirmed.") }}
+  <section class="chart-card"><div class="chart-title">Revenue data</div>
+    <p class="chart-summary">Revenue is entered manually on completed bookings. This prototype does not process payments.</p>
+  </section>
+</div>
+
+<section class="panel"><div class="panel-header"><h2>Bookings and revenue</h2></div>
+  {{ bookings_table(bookings, actions=false) }}
+</section>
+<p class="field-hint" style="margin-top:13px">Reports are descriptive summaries of recorded data. For a forward look, see the Forecast on the dashboard.</p>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('pages.admin_asset', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('pages.admin_asset', filename='charts.js') }}"></script>
+{% endblock %}

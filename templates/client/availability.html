@@ -1,0 +1,23 @@
+{% extends "client/layout.html" %}
+{% from "partials/calendar.html" import calendar %}
+{% block title %}Available dates — FIPConnect{% endblock %}
+{% block main %}
+<div class="page-header"><span class="eyebrow">Plan ahead</span><h1 class="serif">Available dates.</h1><p>Dates shown as available are open for inquiries, but are not reserved until confirmed by the FIP team.</p></div>
+{% from "partials/lead_time.html" import lead_time_notice %}{{ lead_time_notice(earliest, lead_days) }}
+<section class="calendar-wrap">
+  {% call(day) calendar(month_start, weeks, "/availability", prev_month, next_month, lead_days) %}
+    {%- set iso = day.isoformat() -%}
+    {%- set taken = iso in unavailable -%}
+    {%- set past = day < today() -%}
+    {%- set soon = not past and day < earliest -%}
+    {%- set classes = "calendar-day" ~ (" is-unavailable" if taken else "") ~ (" is-past" if past else "") ~ (" is-too-soon" if soon else "") -%}
+    {%- set label = "Past" if past else "Unavailable" if taken else "Too soon" if soon else "" -%}
+    {%- if past or taken or soon -%}
+      <span class="{{ classes }}" data-date="{{ iso }}" title="{{ label }}"><strong>{{ day.day }}</strong><small>{{ label }}</small></span>
+    {%- else -%}
+      <a class="{{ classes }}" data-date="{{ iso }}" href="/inquire?date={{ iso }}" title="Select this date"><strong>{{ day.day }}</strong><small>Available</small></a>
+    {%- endif -%}
+  {% endcall %}
+  <div style="margin-top:16px"><a class="button" href="/inquire">Start an inquiry →</a></div>
+</section>
+{% endblock %}

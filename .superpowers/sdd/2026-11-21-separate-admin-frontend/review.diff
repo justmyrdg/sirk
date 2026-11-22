@@ -1,0 +1,737 @@
+--- C:/Users/Justmyr/AppData/Local/Temp/claude/4a0986ef1abc587e/7593429c-f29d-4f3a-a706-25ed556a1438/scratchpad/backup-original/app.py	2026-11-21 15:34:54.231921100 +0800
++++ app.py	2026-11-21 15:36:09.965228300 +0800
+@@ -30,7 +30,15 @@
+ from cryptography.fernet import Fernet, InvalidToken
+ from cryptography.hazmat.primitives import hashes
+ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+-from flask import Flask, jsonify, redirect, render_template, request, session
++from flask import (
++    Flask,
++    jsonify,
++    redirect,
++    render_template,
++    request,
++    send_from_directory,
++    session,
++)
+ from PIL import Image, UnidentifiedImageError
+ from werkzeug.security import check_password_hash, generate_password_hash
+ 
+@@ -338,9 +346,12 @@
+         FACE_SERVICE_URL=os.environ.get(
+             "FIPCONNECT_FACE_SERVICE_URL", "http://127.0.0.1:5018"
+         ),
++        ADMIN_HOST=os.environ.get("FIP_ADMIN_HOST", "admin.localhost"),
++        CLIENT_URL=os.environ.get("FIP_CLIENT_URL", "http://localhost:5000"),
+     )
+     if test_config:
+         app.config.update(test_config)
++    app.config["ADMIN_HOST"] = app.config["ADMIN_HOST"].strip().lower()
+ 
+     def default_state():
+         return {
+@@ -569,9 +580,24 @@
+             return api_error("Your session expired. Refresh the page and try again.", 400)
+         return None
+ 
++    def is_admin_host():
++        hostname = urlsplit(f"//{request.host}").hostname or ""
++        return hostname.lower() == app.config["ADMIN_HOST"]
++
++    def admin_host_only(view):
++        @wraps(view)
++        def wrapped(*args, **kwargs):
++            if not is_admin_host():
++                return api_error("Not found.", 404)
++            return view(*args, **kwargs)
++
++        return wrapped
++
+     def admin_required(view):
+         @wraps(view)
+         def wrapped(*args, **kwargs):
++            if not is_admin_host():
++                return api_error("Not found.", 404)
+             with LOCK:
+                 state = read_state()
+             admin = next(
+@@ -692,12 +718,37 @@
+ 
+     @app.get("/")
+     def index():
+-        return render_template("index.html")
++        if is_admin_host():
++            return render_template(
++                "admin.html", client_url=app.config["CLIENT_URL"]
++            )
++        return render_template("client.html")
++
++    @app.get("/admin-static/<path:filename>")
++    @admin_host_only
++    def admin_asset(filename):
++        return send_from_directory(ROOT / "admin_static", filename)
+ 
+     @app.get("/api/bootstrap")
+     def bootstrap():
+         with LOCK:
+             state = read_state()
++        return jsonify(
++            {
++                "csrfToken": csrf_token(),
++                "landing": state["landing"],
++                "services": [
++                    item for item in state["services"] if item.get("active")
++                ],
++                "availableDates": sorted(unavailable_dates(state)),
++            }
++        )
++
++    @app.get("/api/admin/bootstrap")
++    @admin_host_only
++    def admin_bootstrap():
++        with LOCK:
++            state = read_state()
+         admin = next(
+             (
+                 account
+@@ -711,15 +762,11 @@
+                 "adminConfigured": bool(state["admins"]),
+                 "isAdmin": bool(admin),
+                 "csrfToken": csrf_token(),
+-                "landing": state["landing"],
+-                "services": [
+-                    item for item in state["services"] if item.get("active")
+-                ],
+-                "availableDates": sorted(unavailable_dates(state)),
+             }
+         )
+ 
+     @app.post("/api/setup-admin")
++    @admin_host_only
+     def setup_admin():
+         csrf_failure = require_csrf()
+         if csrf_failure:
+@@ -768,6 +815,7 @@
+         return jsonify({"ok": True, "csrfToken": session["csrf_token"]})
+ 
+     @app.post("/api/register-admin")
++    @admin_required
+     def register_admin():
+         csrf_failure = require_csrf()
+         if csrf_failure:
+@@ -813,6 +861,7 @@
+         return jsonify({"ok": True})
+ 
+     @app.post("/api/login")
++    @admin_host_only
+     def login():
+         csrf_failure = require_csrf()
+         if csrf_failure:
+@@ -842,6 +891,7 @@
+         return jsonify({"ok": True, "csrfToken": session["csrf_token"]})
+ 
+     @app.post("/api/login/face")
++    @admin_host_only
+     def login_face():
+         csrf_failure = require_csrf()
+         if csrf_failure:
+@@ -920,6 +970,7 @@
+         return jsonify({"ok": True})
+ 
+     @app.post("/api/logout")
++    @admin_host_only
+     def logout():
+         csrf_failure = require_csrf()
+         if csrf_failure:
+--- C:/Users/Justmyr/AppData/Local/Temp/claude/4a0986ef1abc587e/7593429c-f29d-4f3a-a706-25ed556a1438/scratchpad/backup-original/tests/test_app.py	2026-11-21 15:34:54.301327500 +0800
++++ tests/test_app.py	2026-11-21 15:35:55.467643200 +0800
+@@ -8,6 +8,32 @@
+ import app as fip_app
+ 
+ 
++ADMIN_BASE_URL = "http://admin.localhost"
++
++
++class AdminClient:
++    """Sends every request to the admin host."""
++
++    def __init__(self, client):
++        self.client = client
++
++    def _call(self, method, path, **kwargs):
++        kwargs.setdefault("base_url", ADMIN_BASE_URL)
++        return getattr(self.client, method)(path, **kwargs)
++
++    def get(self, path, **kwargs):
++        return self._call("get", path, **kwargs)
++
++    def post(self, path, **kwargs):
++        return self._call("post", path, **kwargs)
++
++    def put(self, path, **kwargs):
++        return self._call("put", path, **kwargs)
++
++    def delete(self, path, **kwargs):
++        return self._call("delete", path, **kwargs)
++
++
+ class FIPConnectAppTests(unittest.TestCase):
+     def setUp(self):
+         self.temp_dir = tempfile.TemporaryDirectory()
+@@ -20,7 +46,11 @@
+             }
+         )
+         self.client = self.app.test_client()
+-        self.csrf = self.client.get("/api/bootstrap").get_json()["csrfToken"]
++        self.admin = AdminClient(self.client)
++        self.csrf = self.admin_csrf()
++
++    def admin_csrf(self):
++        return self.admin.get("/api/admin/bootstrap").get_json()["csrfToken"]
+ 
+     def tearDown(self):
+         self.temp_dir.cleanup()
+@@ -47,7 +77,7 @@
+         with patch.object(
+             fip_app, "extract_face_embedding", return_value=[0.1] * 128
+         ):
+-            response = self.client.post(
++            response = self.admin.post(
+                 "/api/setup-admin",
+                 headers=self.headers(),
+                 json={
+@@ -64,10 +94,10 @@
+         stored = json.loads(self.data_file.read_text(encoding="utf-8"))
+         stored["admins"][0]["faceModel"] = "Facenet512"
+         self.data_file.write_text(json.dumps(stored), encoding="utf-8")
+-        self.client.post("/api/logout", headers=self.headers(), json={})
+-        self.csrf = self.client.get("/api/bootstrap").get_json()["csrfToken"]
++        self.admin.post("/api/logout", headers=self.headers(), json={})
++        self.csrf = self.admin_csrf()
+ 
+-        legacy_face_login = self.client.post(
++        legacy_face_login = self.admin.post(
+             "/api/login/face",
+             headers=self.headers(),
+             json={"faceImage": "ZmFrZS1pbWFnZQ=="},
+@@ -75,7 +105,7 @@
+         self.assertEqual(legacy_face_login.status_code, 409)
+         self.assertIn("password", legacy_face_login.get_json()["error"])
+ 
+-        signed_in = self.client.post(
++        signed_in = self.admin.post(
+             "/api/login",
+             headers=self.headers(),
+             json={"email": "admin@example.com", "password": "test-password-123"},
+@@ -86,7 +116,7 @@
+         with patch.object(
+             fip_app, "extract_face_embedding", return_value=new_embedding
+         ) as extract:
+-            reenrolled = self.client.post(
++            reenrolled = self.admin.post(
+                 "/api/admin/face",
+                 headers=self.headers(),
+                 json={"faceImage": "ZmFrZS1pbWFnZQ=="},
+@@ -99,22 +129,20 @@
+         self.assertNotIn("0.25", stored["admins"][0]["faceEmbedding"])
+ 
+     def test_face_reenrollment_requires_admin_session(self):
+-        response = self.client.post(
++        response = self.admin.post(
+             "/api/admin/face",
+             headers=self.headers(),
+             json={"faceImage": "ZmFrZS1pbWFnZQ=="},
+         )
+         self.assertEqual(response.status_code, 401)
+ 
+-    def test_public_signup_creates_additional_admins_with_unique_face_templates(self):
++    def test_signed_in_admin_creates_additional_admins_with_unique_face_templates(self):
+         self.setup_admin()
+-        self.client.post("/api/logout", headers=self.headers(), json={})
+-        self.csrf = self.client.get("/api/bootstrap").get_json()["csrfToken"]
+         additional_embedding = [0.2] * 128
+         with patch.object(
+             fip_app, "extract_face_embedding", return_value=additional_embedding
+         ) as extract:
+-            created = self.client.post(
++            created = self.admin.post(
+                 "/api/register-admin",
+                 headers=self.headers(),
+                 json={
+@@ -132,7 +160,7 @@
+         )
+         self.assertTrue(stored["admins"][1]["faceEmbedding"].startswith("gAAAA"))
+ 
+-        duplicate = self.client.post(
++        duplicate = self.admin.post(
+             "/api/register-admin",
+             headers=self.headers(),
+             json={
+@@ -143,9 +171,9 @@
+         )
+         self.assertEqual(duplicate.status_code, 409)
+ 
+-        self.client.post("/api/logout", headers=self.headers(), json={})
+-        self.csrf = self.client.get("/api/bootstrap").get_json()["csrfToken"]
+-        signed_in = self.client.post(
++        self.admin.post("/api/logout", headers=self.headers(), json={})
++        self.csrf = self.admin_csrf()
++        signed_in = self.admin.post(
+             "/api/login",
+             headers=self.headers(),
+             json={
+@@ -156,15 +184,15 @@
+         self.assertEqual(signed_in.status_code, 200)
+         self.csrf = signed_in.get_json()["csrfToken"]
+         self.assertEqual(
+-            self.client.get("/api/admin/data").get_json()["admin"]["username"],
++            self.admin.get("/api/admin/data").get_json()["admin"]["username"],
+             "second@example.com",
+         )
+-        self.client.post("/api/logout", headers=self.headers(), json={})
+-        self.csrf = self.client.get("/api/bootstrap").get_json()["csrfToken"]
++        self.admin.post("/api/logout", headers=self.headers(), json={})
++        self.csrf = self.admin_csrf()
+         with patch.object(
+             fip_app, "match_face_embedding", return_value=1
+         ) as match:
+-            face_signed_in = self.client.post(
++            face_signed_in = self.admin.post(
+                 "/api/login/face",
+                 headers=self.headers(),
+                 json={"faceImage": "ZmFrZS1pbWFnZQ=="},
+@@ -173,21 +201,10 @@
+         self.assertEqual(match.call_args.args[1], [[0.1] * 128, [0.2] * 128])
+         self.csrf = face_signed_in.get_json()["csrfToken"]
+         self.assertEqual(
+-            self.client.get("/api/admin/data").get_json()["admin"]["username"],
++            self.admin.get("/api/admin/data").get_json()["admin"]["username"],
+             "second@example.com",
+         )
+ 
+-    def test_public_signup_is_available_from_login_screen(self):
+-        self.setup_admin()
+-        response = self.client.get("/")
+-        self.assertEqual(response.status_code, 200)
+-        script_response = self.client.get("/static/js/app.js")
+-        script = script_response.get_data(as_text=True)
+-        script_response.close()
+-        self.assertIn('data-action="auth-create">Create account', script)
+-        self.assertIn('"/api/register-admin"', script)
+-        self.assertNotIn('data-action="create-admin-account"', script)
+-
+     def test_existing_single_admin_data_is_migrated_for_login(self):
+         self.data_file.write_text(
+             json.dumps(
+@@ -214,8 +231,8 @@
+             ),
+             encoding="utf-8",
+         )
+-        self.csrf = self.client.get("/api/bootstrap").get_json()["csrfToken"]
+-        signed_in = self.client.post(
++        self.csrf = self.admin_csrf()
++        signed_in = self.admin.post(
+             "/api/login",
+             headers=self.headers(),
+             json={
+@@ -226,7 +243,7 @@
+         self.assertEqual(signed_in.status_code, 200)
+         self.csrf = signed_in.get_json()["csrfToken"]
+         self.assertEqual(
+-            self.client.get("/api/admin/data").get_json()["admin"]["username"],
++            self.admin.get("/api/admin/data").get_json()["admin"]["username"],
+             "legacy@example.com",
+         )
+ 
+@@ -243,16 +260,16 @@
+         )
+ 
+     def test_admin_setup_requires_face_capture(self):
+-        response = self.client.post(
++        response = self.admin.post(
+             "/api/setup-admin",
+             headers=self.headers(),
+             json={"email": "admin@example.com", "password": "test-password-123"},
+         )
+         self.assertEqual(response.status_code, 400)
+-        self.assertFalse(self.client.get("/api/bootstrap").get_json()["adminConfigured"])
++        self.assertFalse(self.admin.get("/api/admin/bootstrap").get_json()["adminConfigured"])
+ 
+     def test_admin_setup_rejects_invalid_camera_image(self):
+-        response = self.client.post(
++        response = self.admin.post(
+             "/api/setup-admin",
+             headers=self.headers(),
+             json={
+@@ -262,11 +279,11 @@
+             },
+         )
+         self.assertEqual(response.status_code, 400)
+-        self.assertFalse(self.client.get("/api/bootstrap").get_json()["adminConfigured"])
++        self.assertFalse(self.admin.get("/api/admin/bootstrap").get_json()["adminConfigured"])
+ 
+     def test_admin_setup_requires_valid_email(self):
+         with patch.object(fip_app, "extract_face_embedding") as extract:
+-            response = self.client.post(
++            response = self.admin.post(
+                 "/api/setup-admin",
+                 headers=self.headers(),
+                 json={
+@@ -281,7 +298,7 @@
+     def test_setup_is_unavailable_after_first_account(self):
+         self.setup_admin()
+         with patch.object(fip_app, "extract_face_embedding") as extract:
+-            response = self.client.post(
++            response = self.admin.post(
+                 "/api/setup-admin",
+                 headers=self.headers(),
+                 json={
+@@ -304,14 +321,10 @@
+         self.assertNotIn("email", lookup.get_json())
+ 
+     def test_flask_template_and_static_asset_routes(self):
+-        homepage = self.client.get("/")
+-        self.assertEqual(homepage.status_code, 200)
+-        self.assertIn(b"/static/css/styles.css", homepage.data)
+-        self.assertIn(b"/static/js/app.js", homepage.data)
+-
+         for asset in (
+             "/static/css/styles.css",
+-            "/static/js/app.js",
++            "/static/js/shared.js",
++            "/static/js/client.js",
+             "/static/images/logo_flare.png",
+         ):
+             with self.subTest(asset=asset):
+@@ -319,6 +332,49 @@
+                 self.assertEqual(response.status_code, 200)
+                 response.close()
+ 
++    def test_client_page_ships_no_admin_code(self):
++        html = self.client.get("/").get_data(as_text=True)
++        self.assertIn("/static/js/shared.js", html)
++        self.assertIn("/static/js/client.js", html)
++        for banned in ("admin.js", "admin-static", "Admin"):
++            with self.subTest(banned=banned):
++                self.assertNotIn(banned, html)
++        response = self.client.get("/static/js/client.js")
++        script = response.get_data(as_text=True)
++        response.close()
++        for banned in (
++            "/api/admin",
++            "register-admin",
++            "setup-admin",
++            "/api/login",
++            'data-page="admin"',
++            "login-form",
++            "face",
++        ):
++            with self.subTest(banned=banned):
++                self.assertNotIn(banned, script)
++
++    def test_admin_script_is_only_served_on_admin_host(self):
++        self.assertEqual(self.client.get("/admin-static/admin.js").status_code, 404)
++        response = self.admin.get("/admin-static/admin.js")
++        self.assertEqual(response.status_code, 200)
++        response.close()
++
++    def test_admin_page_loads_admin_script_with_client_url(self):
++        html = self.admin.get("/").get_data(as_text=True)
++        self.assertIn("/static/js/shared.js", html)
++        self.assertIn("/admin-static/admin.js", html)
++        self.assertNotIn("/static/js/client.js", html)
++        self.assertIn('data-client-url="http://localhost:5000"', html)
++
++    def test_admin_script_has_add_admin_and_no_public_signup(self):
++        response = self.admin.get("/admin-static/admin.js")
++        script = response.get_data(as_text=True)
++        response.close()
++        self.assertIn('data-action="add-admin"', script)
++        self.assertIn('"/api/register-admin"', script)
++        self.assertNotIn('data-action="auth-create"', script)
++
+     def test_loopback_ip_redirects_to_localhost(self):
+         response = self.client.get(
+             "/api/bootstrap",
+@@ -344,16 +400,16 @@
+     def test_admin_approval_books_date_and_persists(self):
+         created = self.submit_inquiry().get_json()
+         self.setup_admin()
+-        data = self.client.get("/api/admin/data")
++        data = self.admin.get("/api/admin/data")
+         inquiry = data.get_json()["inquiries"][0]
+ 
+-        approved = self.client.put(
++        approved = self.admin.put(
+             f"/api/inquiries/{inquiry['id']}",
+             headers=self.headers(),
+             json={"status": "Approved", "expectedRevenue": 12000},
+         )
+         self.assertEqual(approved.status_code, 200)
+-        admin_data = self.client.get("/api/admin/data").get_json()
++        admin_data = self.admin.get("/api/admin/data").get_json()
+         self.assertEqual(admin_data["bookings"][0]["status"], "Confirmed")
+         self.assertEqual(admin_data["inquiries"][0]["status"], "Approved")
+ 
+@@ -376,7 +432,7 @@
+         self.assertEqual(self.submit_inquiry(second_event_date.isoformat()).status_code, 201)
+         self.setup_admin()
+ 
+-        analytics = self.client.get("/api/admin/data").get_json()["analytics"]
++        analytics = self.admin.get("/api/admin/data").get_json()["analytics"]
+         counts_by_month = {item["month"]: item["count"] for item in analytics["inquiryMonths"]}
+         self.assertEqual(counts_by_month, {
+             first_event_date.strftime("%Y-%m"): 1,
+@@ -384,9 +440,9 @@
+         })
+ 
+     def test_admin_routes_require_login_and_admin_mutations_require_csrf(self):
+-        forbidden = self.client.get("/api/admin/data")
++        forbidden = self.admin.get("/api/admin/data")
+         self.assertEqual(forbidden.status_code, 401)
+-        missing_csrf = self.client.post(
++        missing_csrf = self.admin.post(
+             "/api/setup-admin",
+             json={
+                 "email": "admin@example.com",
+@@ -397,12 +453,12 @@
+ 
+     def test_admin_can_sign_in_with_face_recognition(self):
+         self.setup_admin()
+-        self.client.post("/api/logout", headers=self.headers(), json={})
+-        self.csrf = self.client.get("/api/bootstrap").get_json()["csrfToken"]
++        self.admin.post("/api/logout", headers=self.headers(), json={})
++        self.csrf = self.admin_csrf()
+         with patch.object(
+             fip_app, "match_face_embedding", return_value=0
+         ) as match:
+-            signed_in = self.client.post(
++            signed_in = self.admin.post(
+                 "/api/login/face",
+                 headers=self.headers(),
+                 json={"faceImage": "ZmFrZS1pbWFnZQ=="},
+@@ -411,20 +467,20 @@
+         self.assertEqual(signed_in.status_code, 200)
+         self.assertEqual(match.call_args.args[1], [[0.1] * 128])
+         self.csrf = signed_in.get_json()["csrfToken"]
+-        self.assertEqual(self.client.get("/api/admin/data").status_code, 200)
++        self.assertEqual(self.admin.get("/api/admin/data").status_code, 200)
+ 
+     def test_unmatched_face_does_not_create_admin_session(self):
+         self.setup_admin()
+-        self.client.post("/api/logout", headers=self.headers(), json={})
+-        self.csrf = self.client.get("/api/bootstrap").get_json()["csrfToken"]
++        self.admin.post("/api/logout", headers=self.headers(), json={})
++        self.csrf = self.admin_csrf()
+         with patch.object(fip_app, "match_face_embedding", return_value=None):
+-            denied = self.client.post(
++            denied = self.admin.post(
+                 "/api/login/face",
+                 headers=self.headers(),
+                 json={"faceImage": "ZmFrZS1pbWFnZQ=="},
+             )
+         self.assertEqual(denied.status_code, 401)
+-        self.assertEqual(self.client.get("/api/admin/data").status_code, 401)
++        self.assertEqual(self.admin.get("/api/admin/data").status_code, 401)
+ 
+     def test_admin_can_sign_in_with_email_and_password(self):
+         self.setup_admin()
+@@ -432,16 +488,109 @@
+         self.assertEqual(stored["admins"][0]["email"], "admin@example.com")
+         self.assertTrue(stored["admins"][0]["faceEmbedding"].startswith("gAAAA"))
+         self.assertNotIn("0.1", stored["admins"][0]["faceEmbedding"])
+-        self.client.post("/api/logout", headers=self.headers(), json={})
+-        self.csrf = self.client.get("/api/bootstrap").get_json()["csrfToken"]
+-        signed_in = self.client.post(
++        self.admin.post("/api/logout", headers=self.headers(), json={})
++        self.csrf = self.admin_csrf()
++        signed_in = self.admin.post(
+             "/api/login",
+             headers=self.headers(),
+             json={"email": "ADMIN@example.com", "password": "test-password-123"},
+         )
+         self.assertEqual(signed_in.status_code, 200)
+         self.csrf = signed_in.get_json()["csrfToken"]
+-        self.assertEqual(self.client.get("/api/admin/data").status_code, 200)
++        self.assertEqual(self.admin.get("/api/admin/data").status_code, 200)
++
++    def test_admin_apis_return_404_on_client_host(self):
++        for method, path in [
++            ("get", "/api/admin/bootstrap"), ("get", "/api/admin/data"),
++            ("post", "/api/setup-admin"), ("post", "/api/register-admin"),
++            ("post", "/api/login"), ("post", "/api/login/face"),
++            ("post", "/api/logout"), ("post", "/api/admin/face"),
++            ("put", "/api/inquiries/abc"), ("post", "/api/blocks"),
++            ("delete", "/api/blocks/abc"), ("post", "/api/services"),
++            ("put", "/api/services/abc"), ("delete", "/api/services/abc"),
++            ("put", "/api/bookings/abc/complete"), ("put", "/api/landing"),
++        ]:
++            with self.subTest(method=method, path=path):
++                response = getattr(self.client, method)(
++                    path, headers=self.headers(), json={}
++                )
++                self.assertEqual(response.status_code, 404)
++                self.assertEqual(response.get_json(), {"error": "Not found."})
++
++    def test_public_bootstrap_hides_admin_state(self):
++        body = self.client.get("/api/bootstrap").get_json()
++        self.assertEqual(
++            set(body), {"csrfToken", "landing", "services", "availableDates"}
++        )
++
++    def test_admin_host_match_ignores_case_and_port(self):
++        response = self.client.get(
++            "/api/admin/bootstrap", base_url="http://Admin.Localhost:5000"
++        )
++        self.assertEqual(response.status_code, 200)
++
++    def test_admin_session_is_not_usable_from_client_host(self):
++        self.setup_admin()
++        self.assertEqual(self.admin.get("/api/admin/data").status_code, 200)
++        self.assertEqual(self.client.get("/api/admin/data").status_code, 404)
++
++    def test_public_status_lookup_still_works_on_client_host_while_put_is_blocked(self):
++        reference = self.submit_inquiry().get_json()["reference"]
++        self.assertEqual(
++            self.client.get(f"/api/inquiries/{reference}").status_code, 200
++        )
++        self.assertEqual(
++            self.client.put(
++                f"/api/inquiries/{reference}", headers=self.headers(), json={}
++            ).status_code,
++            404,
++        )
++
++    def test_register_admin_requires_signed_in_admin(self):
++        account = {
++            "email": "x@example.com",
++            "password": "password-123",
++            "faceImage": "ZmFrZS1pbWFnZQ==",
++        }
++        with patch.object(fip_app, "extract_face_embedding") as extract:
++            response = self.admin.post(
++                "/api/register-admin",
++                headers={"X-CSRF-Token": self.admin_csrf()},
++                json=account,
++            )
++        self.assertEqual(response.status_code, 401)
++        extract.assert_not_called()
++        self.setup_admin()
++        self.admin.post("/api/logout", headers=self.headers(), json={})
++        response = self.admin.post(
++            "/api/register-admin",
++            headers={"X-CSRF-Token": self.admin_csrf()},
++            json=account,
++        )
++        self.assertEqual(response.status_code, 401)
++
++    def test_admin_host_is_configurable(self):
++        app = fip_app.create_app(
++            {
++                "TESTING": True,
++                "SECRET_KEY": "k",
++                "DATA_FILE": str(self.data_file),
++                "ADMIN_HOST": "admin.example.com",
++            }
++        )
++        client = app.test_client()
++        self.assertEqual(
++            client.get(
++                "/api/admin/bootstrap", base_url="http://admin.example.com"
++            ).status_code,
++            200,
++        )
++        self.assertEqual(
++            client.get(
++                "/api/admin/bootstrap", base_url="http://admin.localhost"
++            ).status_code,
++            404,
++        )
+ 
+ 
+ if __name__ == "__main__":
+--- C:/Users/Justmyr/AppData/Local/Temp/claude/4a0986ef1abc587e/7593429c-f29d-4f3a-a706-25ed556a1438/scratchpad/backup-original/README.md	2026-11-21 15:34:54.337248000 +0800
++++ README.md	2026-11-21 15:39:53.437633500 +0800
+@@ -12,14 +12,18 @@
+ ├── face_service.cjs
+ ├── README.md
+ ├── templates/
+-│   └── index.html
++│   ├── client.html    # public site (main domain)
++│   └── admin.html     # admin site (admin subdomain only)
+ ├── static/
+ │   ├── css/
+ │   │   └── styles.css
+ │   ├── images/
+ │   │   └── logo_flare.png
+ │   └── js/
+-│       └── app.js
++│       ├── shared.js  # helpers used by both sites
++│       └── client.js  # public pages only
++├── admin_static/
++│   └── admin.js       # admin front end, served only on the admin host
+ ├── tests/
+ │   └── test_app.py
+ └── instance/          # Local JSON records and session key (not committed)
+@@ -31,17 +35,28 @@
+ 2. Install dependencies with `python -m pip install -r requirements.txt`.
+ 3. Install the JavaScript face-recognition dependencies with `npm install`.
+ 4. Start the app with `python app.py`.
+-5. Open <http://localhost:5000>. Loopback IP URLs such as `http://127.0.0.1:5000` automatically redirect to `localhost` so browser camera access works in local development.
+-6. Open **Admin** and create the administrator account on first use.
++5. Open the client site at <http://localhost:5000>. Loopback IP URLs such as `http://127.0.0.1:5000` automatically redirect to `localhost`.
++6. Open the admin site at <http://admin.localhost:5000>. The first visit shows first-time setup for the administrator account. Browsers treat `*.localhost` as this computer and as a secure origin, so camera access works there.
++
++The client site has no admin link, login, or admin code. Admin pages, the admin script, and every admin/login API respond only on the admin host; on any other host they return 404.
+ 
+ Flask saves prototype records to `instance/fipconnect.json` and its session-signing key to `instance/secret.key`. These are local JSON/file storage, not a database. Do not delete the `instance` folder if you want to keep the prototype's records and admin session key.
+ 
+-The first administrator creates an account using an email and password, then enrolls their face using the browser camera. The login screen provides a **Create account** option for additional administrators; signup is public and does not require an invitation or an existing admin session. Anyone who can access the admin login page can create an admin account, so only use this configuration on a trusted/private site. Each account can sign in with its own email and password or its enrolled face. Face detection and matching run in a local server-side JavaScript service using `@vladmandic/face-api` and its 128-value face descriptor model. Flask starts the service on `127.0.0.1:5018` the first time face recognition is used; the service accepts requests only from Flask using a token derived from the stable Flask secret key. The first recognition may take longer while the JavaScript service loads its models. The camera photo is processed in memory and discarded; only the face descriptor is stored, encrypted using a key derived from Flask's stable secret key. Keep `instance/secret.key` (or `FIPCONNECT_SECRET_KEY`) private and stable, because rotating it makes saved face templates unreadable. Face matching is not liveness detection and cannot reliably stop photo/video spoofing; keep a strong password fallback. This prototype keeps the encrypted face templates in its local JSON data file. Use HTTPS when deploying so browsers allow camera access.
++The first administrator creates an account using an email and password, then enrolls their face using the browser camera. Additional administrators are added by a signed-in administrator with **Add admin** in the admin header; there is no public signup. Each account can sign in with its own email and password or its enrolled face. Face detection and matching run in a local server-side JavaScript service using `@vladmandic/face-api` and its 128-value face descriptor model. Flask starts the service on `127.0.0.1:5018` the first time face recognition is used; the service accepts requests only from Flask using a token derived from the stable Flask secret key. The first recognition may take longer while the JavaScript service loads its models. The camera photo is processed in memory and discarded; only the face descriptor is stored, encrypted using a key derived from Flask's stable secret key. Keep `instance/secret.key` (or `FIPCONNECT_SECRET_KEY`) private and stable, because rotating it makes saved face templates unreadable. Face matching is not liveness detection and cannot reliably stop photo/video spoofing; keep a strong password fallback. This prototype keeps the encrypted face templates in its local JSON data file. Use HTTPS when deploying so browsers allow camera access.
+ 
+ Existing face templates created with DeepFace use a different model and cannot be compared to the JavaScript descriptors. Those admins can still sign in with their password, then select **Re-enroll face** in the admin header to replace their saved template. Re-enrollment does not change the account password or other records. Existing single-admin JSON data is migrated automatically when the application reads it.
+ 
+ The JSON file is a single-server prototype store. For deployment, set a private `FIPCONNECT_SECRET_KEY`, disable debug mode, use a production WSGI server, and move records to a database when the project is ready for one.
+ 
++## Deploying the admin on a subdomain
++
++Point both DNS names (for example `yoursite.com` and `admin.yoursite.com`) at the same app, and set:
++
++- `FIP_ADMIN_HOST` — the admin hostname, for example `admin.yoursite.com` (default `admin.localhost`). Case and port are ignored.
++- `FIP_CLIENT_URL` — the public site URL used by the admin's "View site" links, for example `https://yoursite.com` (default `http://localhost:5000`).
++
++If `FIP_ADMIN_HOST` is not set in production, the admin is only reachable at `admin.localhost`, so it stays closed rather than exposed. Login sessions are per host: signing in on the admin site does not create a session on the client site.
++
+ ## Client email and SMS notifications
+ 
+ FIPConnect can send a confirmation when an inquiry is submitted and a new notification whenever an administrator changes its status (including Approved, Declined, and Cancelled). Both messages include the client's unique `FIP-XXXXXXXX` tracking/reference code. The existing **Check inquiry status** page already accepts that code, so clients do not need to create an account.
+--- C:/Users/Justmyr/AppData/Local/Temp/claude/4a0986ef1abc587e/7593429c-f29d-4f3a-a706-25ed556a1438/scratchpad/backup-original/.env.example	2026-11-21 15:34:54.352878200 +0800
++++ .env.example	2026-11-21 15:39:53.439639700 +0800
+@@ -1,3 +1,7 @@
++# Sites
++FIP_ADMIN_HOST=admin.yoursite.com
++FIP_CLIENT_URL=https://yoursite.com
++
+ # Email (SMTP)
+ FIP_SMTP_HOST=smtp.gmail.com
+ FIP_SMTP_PORT=587
+--- C:/Users/Justmyr/AppData/Local/Temp/claude/4a0986ef1abc587e/7593429c-f29d-4f3a-a706-25ed556a1438/scratchpad/backup-original/templates/index.html	2026-11-21 15:34:54.303333400 +0800
++++ templates/client.html	2026-11-21 15:36:10.031198600 +0800
+@@ -4,7 +4,7 @@
+     <meta charset="utf-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1">
+     <meta name="theme-color" content="#173f7a">
+-    <meta name="description" content="FIPConnect event inquiry and booking management for Flare Infinity Productions.">
++    <meta name="description" content="FIPConnect event inquiries and bookings for Flare Infinity Productions.">
+     <title>FIPConnect — Flare Infinity Productions</title>
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+@@ -14,6 +14,7 @@
+   <body>
+     <div id="app"></div>
+     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
++    <script src="{{ url_for('static', filename='js/shared.js') }}"></script>
++    <script src="{{ url_for('static', filename='js/client.js') }}"></script>
+   </body>
+ </html>

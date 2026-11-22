@@ -1,0 +1,10 @@
+{% extends "admin/layout.html" %}
+{% from "partials/admin_tables.html" import inquiry_table %}
+{% block page_title %}Inquiries{% endblock %}
+{% block content %}
+<div class="admin-heading"><div><span class="eyebrow">Client requests</span><h1>Inquiries</h1><p>Review submissions and update their status.</p></div></div>
+<section class="panel">
+  <div class="panel-header"><h2>{{ items | length }} total</h2></div>
+  {{ inquiry_table(items) }}
+</section>
+{% endblock %}

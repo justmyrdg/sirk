@@ -1,0 +1,46 @@
+{% from "partials/status_pill.html" import pill %}
+
+{% macro empty(message) %}<div class="empty-state"><strong>Nothing here yet</strong>{{ message }}</div>{% endmacro %}
+
+{% macro inquiry_table(items) %}
+{% if not items %}{{ empty("New inquiries will appear here.") }}{% else %}
+<div class="table-scroll"><table>
+  <thead><tr><th>Client / event</th><th>Date</th><th>Service</th><th>Status</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for item in items %}
+    <tr>
+      <td><strong>{{ item.name }}</strong><br>{{ item.event_name }} · {{ item.email }}</td>
+      <td>{{ item.event_date | date_ph }}</td>
+      <td>{{ item.service or "—" }}</td>
+      <td>{{ pill(item.status) }}</td>
+      <td><div class="table-actions"><a class="button button-quiet button-small" href="/inquiries/{{ item.id }}">Review</a></div></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endif %}
+{% endmacro %}
+
+{% macro bookings_table(rows, actions=true) %}
+{% if not rows %}{{ empty("Approved inquiries can be turned into bookings.") }}{% else %}
+<div class="table-scroll"><table>
+  <thead><tr><th>Event</th><th>Client</th><th>Date</th><th>Venue</th><th>Expected</th><th>Actual</th><th>Status</th>{% if actions %}<th>Action</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for item in rows %}
+    <tr>
+      <td><strong>{{ item.event_name }}</strong></td>
+      <td>{{ item.client_name }}</td>
+      <td>{{ item.date | date_ph }}</td>
+      <td>{{ item.venue or "—" }}</td>
+      <td>{{ item.expected_revenue | peso }}</td>
+      <td>{{ item.actual_revenue | peso }}</td>
+      <td>{{ pill(item.status) }}</td>
+      {% if actions %}<td>{% if item.status == "Confirmed" %}<a class="button button-quiet button-small" href="/bookings/{{ item.id }}/complete">Mark complete</a>{% endif %}</td>{% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endif %}
+{% endmacro %}
+
+{% macro csrf_field() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}

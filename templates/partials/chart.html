@@ -1,0 +1,40 @@
+{#
+  chart(id, title, summary, data, empty_message=None)
+
+  data = {"kind": "line" | "bar" | "hbar" | "forecast",
+          "format": "count" | "peso",
+          "labels": [...], "series": [{"name": ..., "values": [...]}, ...],
+          optional "projection": {...}}
+
+  Renders a titled card with a canvas that admin_static/charts.js draws,
+  a visible one-line summary, a screen-reader table of the values, and the
+  data as JSON. When empty_message is set, only the message is shown.
+#}
+{% macro value_text(value, format) -%}
+  {%- if value is none -%}—
+  {%- elif format == "peso" -%}{{ value | peso }}
+  {%- else -%}{{ "%g" | format(value) }}{%- endif -%}
+{%- endmacro %}
+
+{% macro chart(id, title, summary, data, empty_message=None, label_format="month") %}
+<figure class="chart-card" aria-labelledby="chart-title-{{ id }}">
+  <figcaption id="chart-title-{{ id }}" class="chart-title">{{ title }}</figcaption>
+  {% if empty_message %}
+    <p class="chart-empty">{{ empty_message }}</p>
+  {% else %}
+    <div class="chart-canvas"><canvas data-chart="{{ id }}" role="img" aria-label="{{ title }}: {{ summary }}"></canvas></div>
+    <p class="chart-summary">{{ summary }}</p>
+    <table class="visually-hidden">
+      <caption>{{ title }}</caption>
+      <thead><tr><th scope="col">{{ "Month" if label_format == "month" else "Item" }}</th>{% for series in data.series %}<th scope="col">{{ series.name }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for label in data.labels %}
+        {% set row = loop.index0 %}
+        <tr><th scope="row">{{ (label ~ "-01") | month_ph if label_format == "month" else label }}</th>{% for series in data.series %}<td>{{ value_text(series["values"][row], data.format) }}</td>{% endfor %}</tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <script type="application/json" id="chart-data-{{ id }}">{{ data | tojson }}</script>
+  {% endif %}
+</figure>
+{% endmacro %}

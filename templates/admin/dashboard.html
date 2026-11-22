@@ -1,0 +1,42 @@
+{% extends "admin/layout.html" %}
+{% from "partials/admin_tables.html" import inquiry_table %}
+{% from "partials/chart.html" import chart %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="admin-heading">
+  <div><span class="eyebrow">Overview</span><h1>Good day, {{ current_admin.email }}.</h1><p>Here is what is happening with your events.</p></div>
+  <a class="button button-small" href="/inquiries">Review inquiries →</a>
+</div>
+
+<div class="stats-grid stats-grid-6">
+  <article class="stat-card"><span>Total inquiries</span><strong>{{ kpis.total }}</strong><small>{{ kpis.this_month }} this month</small></article>
+  <article class="stat-card"><span>Needs attention</span><strong>{{ kpis.pending }}</strong><small>Awaiting a decision or reply</small></article>
+  <article class="stat-card"><span>Upcoming bookings</span><strong>{{ kpis.upcoming }}</strong><small>Confirmed, from today on</small></article>
+  <article class="stat-card"><span>Conversion rate</span><strong>{{ kpis.conversion }}%</strong><small>Resolved inquiries that became bookings</small></article>
+  <article class="stat-card"><span>Expected revenue</span><strong>{{ kpis.expected_upcoming | peso }}</strong><small>From upcoming confirmed bookings</small></article>
+  <article class="stat-card"><span>Completed revenue</span><strong>{{ kpis.actual_completed | peso }}</strong><small>Recorded on completed events</small></article>
+</div>
+
+<div class="chart-grid">
+  {% set c = charts.inquiries %}{{ chart("inquiries", "Inquiries received per month", c.summary, c.data, c.empty) }}
+  {% set c = charts.revenue %}{{ chart("revenue", "Revenue by event month", c.summary, c.data, c.empty) }}
+</div>
+
+<section class="panel forecast-panel">
+  <div class="panel-header"><h2>Forecast</h2><span class="field-hint">Built only from your recorded data</span></div>
+  <div class="chart-grid">
+    {% set c = charts.pipeline %}{{ chart("pipeline", "Confirmed revenue, next 6 months", c.summary, c.data, c.empty) }}
+    {% set c = charts.projection %}{{ chart("projection", "Inquiries, next 3 months (projection)", c.summary, c.data, c.empty) }}
+  </div>
+  <p class="field-hint">The revenue pipeline adds up bookings you have already confirmed. The inquiry projection is the average of the last 3 complete months, with the lowest and highest of those months as the likely range; it appears once there are {{ outlook.min_history }} complete months of data.</p>
+</section>
+
+<section class="panel">
+  <div class="panel-header"><h2>Recent inquiries</h2><a class="button button-quiet button-small" href="/inquiries">View all</a></div>
+  {{ inquiry_table(recent) }}
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('pages.admin_asset', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('pages.admin_asset', filename='charts.js') }}"></script>
+{% endblock %}

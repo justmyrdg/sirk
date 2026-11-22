@@ -1,0 +1,141 @@
+.......C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37741580> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3776B200> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC377A4770> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37743C20> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC376C7D70> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37768E90> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3788A9F0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+...............[2026-11-21 16:41:53,960] ERROR in __init__: Database unavailable (ConnectionTimeout).
+...............C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37575AF0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3763F5C0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC377C12B0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3785C740> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC376852E0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC377E6ED0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3788A300> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3761A6C0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3751C260> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC377C3260> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC376677A0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3763CDA0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC375AB2C0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC377A4AA0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37841910> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC377C1340> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3776A480> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37769D30> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC377A5850> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3785C650> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3796CC50> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3754DAF0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3776A7B0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC379878C0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC379C9610> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37768680> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC374FE810> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37A75190> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3785E090> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37740F20> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37A9B110> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37AD8D40> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37AC1700> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37768E30> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC374FC560> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37B42F30> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37B6BBF0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37B9D970> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37A5AA80> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3763D970> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC379B5550> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37AD9C40> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC379B5010> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37A589B0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37B680E0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37C4C9B0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC3785DDC0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37AC1340> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37CC56A0> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37CEF290> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37740B00> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37B41A00> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+C:\Users\Justmyr\Downloads\flare\flare-main\venv\Lib\site-packages\psycopg\_connection_base.py:153: ResourceWarning: <psycopg.Connection object at 0x000001AC37D09850> was deleted while still open. Please use 'with' or '.close()' to close the connection properly
+  __warn(
+.....C:\Users\Justmyr\Downloads\flare\flare-main\migrations\env.py:21: DeprecationWarning: 'get_engine' is deprecated and will be removed in Flask-SQLAlchemy 3.2. Use 'engine' or 'engines[key]' instead. If you're using Flask-Migrate or Alembic, you'll need to update your 'env.py' file.
+  return current_app.extensions['migrate'].db.get_engine()
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001, initial schema and starting content
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.schemas
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.tables
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.types
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.constraints
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.defaults
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.comments
+INFO  [alembic.ddl.postgresql] Detected sequence named 'admins_id_seq' as owned by integer column 'admins(id)', assuming SERIAL and omitting
+INFO  [alembic.ddl.postgresql] Detected sequence named 'site_settings_id_seq' as owned by integer column 'site_settings(id)', assuming SERIAL and omitting
+...............
+----------------------------------------------------------------------
+Ran 57 tests in 15.040s
+
+OK

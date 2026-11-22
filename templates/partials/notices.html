@@ -1,0 +1,7 @@
+{# Flashed success/error messages, plus an optional page error. #}
+{% macro notices(error=None) %}
+  {% for category, message in get_flashed_messages(with_categories=true) if category in ("success", "error") %}
+    <div class="notice {{ 'notice-success' if category == 'success' else 'notice-danger' }}" role="status">{{ message }}</div>
+  {% endfor %}
+  {% if error %}<div class="notice notice-danger" role="alert">{{ error }}</div>{% endif %}
+{% endmacro %}

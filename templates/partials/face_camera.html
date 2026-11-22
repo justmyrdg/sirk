@@ -1,0 +1,10 @@
+{# The camera panel the face flows open. admin.js shows it and fills nothing but text. #}
+<div class="notice notice-danger" data-camera-error role="alert" hidden></div>
+<div class="face-capture" id="face-capture" hidden>
+  <video id="face-video" autoplay muted playsinline></video>
+  <p>Look directly at the camera and make sure you are the only person in the frame.</p>
+  <div class="face-capture-actions">
+    <button class="button" type="button" data-camera="capture">Capture face</button>
+    <button class="button button-quiet" type="button" data-camera="cancel">Cancel</button>
+  </div>
+</div>

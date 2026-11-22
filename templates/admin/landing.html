@@ -1,0 +1,18 @@
+{% extends "admin/layout.html" %}
+{% from "partials/admin_tables.html" import csrf_field %}
+{% block page_title %}Landing page{% endblock %}
+{% block content %}
+<div class="admin-heading">
+  <div><span class="eyebrow">Public website</span><h1>Landing page</h1><p>Update the organizer details and introduction shown to clients.</p></div>
+  <a class="button button-quiet button-small" href="{{ client_url }}" target="_blank" rel="noopener">Preview site ↗</a>
+</div>
+<section class="panel">
+  <form class="landing-edit-grid" method="post" action="/landing">
+    {{ csrf_field() }}
+    <div class="field field-wide"><label for="organizer">Organizer name</label><input id="organizer" name="organizer" maxlength="120" required value="{{ form.organizer }}"></div>
+    <div class="field field-wide"><label for="headline">Main headline</label><input id="headline" name="headline" maxlength="160" required value="{{ form.headline }}"></div>
+    <div class="field field-wide"><label for="intro">Introduction</label><textarea id="intro" name="intro" maxlength="500" required>{{ form.intro }}</textarea></div>
+    <div><button class="button">Save landing page</button></div>
+  </form>
+</section>
+{% endblock %}

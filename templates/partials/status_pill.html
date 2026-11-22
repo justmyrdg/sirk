@@ -1,0 +1,7 @@
+{% macro pill(status) -%}
+  {%- set tone = "green" if status in ("Approved", "Confirmed", "Completed", "Active")
+      else "red" if status in ("Declined", "Cancelled")
+      else "" if status in ("Submitted", "Under Review")
+      else "gray" -%}
+  <span class="pill {{ tone }}">{{ status }}</span>
+{%- endmacro %}

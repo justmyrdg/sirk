@@ -1,0 +1,17 @@
+{% extends "admin/layout.html" %}
+{% from "partials/admin_tables.html" import csrf_field %}
+{% block page_title %}Complete booking{% endblock %}
+{% block content %}
+<div class="admin-heading">
+  <div><span class="eyebrow">Complete booking</span><h1>{{ booking.event_name }}</h1><p>{{ booking.client_name }} · {{ booking.date | date_ph }}</p></div>
+  <a class="button button-quiet button-small" href="/schedule">← Schedule</a>
+</div>
+<section class="panel">
+  <form method="post" action="/bookings/{{ booking.id }}/complete">
+    {{ csrf_field() }}
+    <p>Record actual revenue for <strong>{{ booking.event_name }}</strong>.</p>
+    <div class="field"><label for="actual-revenue">Actual revenue (₱)</label><input id="actual-revenue" name="actualRevenue" type="number" min="0" step="100" required value="{{ form.actualRevenue }}"></div>
+    <div class="modal-actions"><a class="button button-quiet" href="/schedule">Cancel</a><button class="button">Mark completed</button></div>
+  </form>
+</section>
+{% endblock %}

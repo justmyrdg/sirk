@@ -1,0 +1,17 @@
+{% extends "admin/layout.html" %}
+{% from "partials/admin_tables.html" import csrf_field %}
+{% block page_title %}Edit service{% endblock %}
+{% block content %}
+<div class="admin-heading">
+  <div><span class="eyebrow">Edit service</span><h1>{{ service.name }}</h1></div>
+  <a class="button button-quiet button-small" href="/services">← Services</a>
+</div>
+<section class="panel">
+  <form method="post" action="/services/{{ service.id }}/edit">
+    {{ csrf_field() }}
+    <div class="field"><label for="edit-service-name">Service name</label><input id="edit-service-name" name="name" maxlength="100" required value="{{ form.name }}"></div>
+    <div class="field" style="margin-top:14px"><label for="edit-service-description">Description</label><textarea id="edit-service-description" name="description" maxlength="240" required>{{ form.description }}</textarea></div>
+    <div class="modal-actions"><a class="button button-quiet" href="/services">Cancel</a><button class="button">Save service</button></div>
+  </form>
+</section>
+{% endblock %}

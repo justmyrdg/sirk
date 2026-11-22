@@ -1,0 +1,35 @@
+{% extends "admin/layout.html" %}
+{% from "partials/admin_tables.html" import csrf_field, empty %}
+{% from "partials/status_pill.html" import pill %}
+{% block page_title %}Services{% endblock %}
+{% block content %}
+<div class="admin-heading"><div><span class="eyebrow">What you offer</span><h1>Services</h1><p>Manage the services clients can see on the public site.</p></div></div>
+<section class="panel">
+  <div class="panel-header"><h2>Published services</h2></div>
+  {% if services %}
+  <div class="table-scroll"><table>
+    <thead><tr><th>Service</th><th>Description</th><th>Visibility</th><th>Action</th></tr></thead>
+    <tbody>
+    {% for item in services %}
+      <tr>
+        <td><strong>{{ item.name }}</strong></td>
+        <td>{{ item.description }}</td>
+        <td>{{ pill("Active") if item.active else pill("Hidden") }}</td>
+        <td><div class="table-actions">
+          <a class="button button-quiet button-small" href="/services/{{ item.id }}/edit">Edit</a>
+          <form method="post" action="/services/{{ item.id }}/toggle">{{ csrf_field() }}<button class="button button-quiet button-small">{{ "Hide" if item.active else "Publish" }}</button></form>
+          <form method="post" action="/services/{{ item.id }}/delete" data-confirm="Delete {{ item.name }} from the public services list? Existing inquiries will not be changed.">{{ csrf_field() }}<button class="button button-danger button-small">Delete</button></form>
+        </div></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}{{ empty("Add a service to display it on the landing page.") }}{% endif %}
+  <form class="inline-form" method="post" action="/services">
+    {{ csrf_field() }}
+    <input name="name" maxlength="100" placeholder="Service name" required aria-label="Service name" value="{{ form.name }}">
+    <input name="description" maxlength="240" placeholder="Short description" required aria-label="Short description" value="{{ form.description }}">
+    <button class="button button-small">Add service</button>
+  </form>
+</section>
+{% endblock %}

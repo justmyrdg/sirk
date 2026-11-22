@@ -1,0 +1,21 @@
+{% extends "client/layout.html" %}
+{% from "partials/status_pill.html" import pill %}
+{% block title %}Check status — FIPConnect{% endblock %}
+{% block main %}
+<div class="page-header"><span class="eyebrow">Your inquiry</span><h1 class="serif">Check your inquiry status.</h1><p>Enter the reference code from your submission confirmation. No client account is needed.</p></div>
+<div class="layout-two">
+  <form class="content-card" method="post" action="/status">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field"><label for="reference-code">Inquiry reference code</label><input id="reference-code" name="reference" placeholder="FIP-XXXXXXXX" required maxlength="20" autocapitalize="characters" value="{{ reference }}"></div>
+    <button class="button" type="submit" style="margin-top:16px">Check status</button>
+    <div class="status-result" aria-live="polite">
+      {% if inquiry %}
+      <div class="notice notice-success"><strong>{{ inquiry.event_name }}</strong><br>Status: {{ pill(inquiry.status) }}<br>Requested date: {{ inquiry.event_date | date_ph }}<br>Submitted: {{ inquiry.created_at | date_ph }}<br><span class="field-hint">The FIP team will contact you using the details provided in your inquiry.</span></div>
+      {% elif error %}
+      <div class="notice notice-danger">{{ error }}</div>
+      {% endif %}
+    </div>
+  </form>
+  <aside class="info-card"><h2>Need your code?</h2><p>Your unique code was shown when your inquiry was submitted. Keep it somewhere safe; it is used to look up your inquiry.</p><p>For help, contact the FIP team through the contact details they provided to you.</p></aside>
+</div>
+{% endblock %}

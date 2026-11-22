@@ -1,0 +1,21 @@
+{% extends "admin/layout.html" %}
+{% from "partials/account_fields.html" import account_fields %}
+{% from "partials/step_up.html" import step_up, confirmed with context %}
+{% block page_title %}Add an admin{% endblock %}
+{% block content %}
+<div class="admin-heading"><div><span class="eyebrow">Team access</span><h1>Add an admin</h1><p>The new admin should be at this device: after you continue, the camera opens to enroll their face.</p></div></div>
+{% if added %}<div class="notice notice-success" role="status">Admin account added. They can now sign in.</div>{% endif %}
+{% if step_up_left and step_up_method == "face" %}
+  {{ confirmed(step_up_left) }}
+  <section class="panel">
+    <div class="panel-header"><h2>Step 2 · New admin's details</h2></div>
+    <form data-flow="register" data-next="/admins/new?added=1">
+      {{ account_fields("new-admin") }}
+      <button class="button">Continue and scan their face</button>
+    </form>
+    {% include "partials/face_camera.html" %}
+  </section>
+{% else %}
+  {{ step_up("/admins/new", usable_face, reset_allowed, "add an admin", allow_password=False) }}
+{% endif %}
+{% endblock %}

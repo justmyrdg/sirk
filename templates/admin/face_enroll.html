@@ -1,0 +1,17 @@
+{% extends "admin/layout.html" %}
+{% from "partials/step_up.html" import step_up, confirmed with context %}
+{% block page_title %}Re-enroll face{% endblock %}
+{% block content %}
+<div class="admin-heading"><div><span class="eyebrow">Your account</span><h1>Re-enroll your face</h1><p>Replace your saved face template. Your password and other records don't change.</p></div></div>
+{% if updated %}<div class="notice notice-success" role="status">Face enrollment updated.</div>{% endif %}
+{% if step_up_left %}
+  {{ confirmed(step_up_left) }}
+  <section class="panel">
+    <div class="panel-header"><h2>Step 2 · Scan your new face</h2></div>
+    <button class="button" type="button" data-flow="reenroll" data-next="/account/face?updated=1">Scan my face</button>
+    {% include "partials/face_camera.html" %}
+  </section>
+{% else %}
+  {{ step_up("/account/face", usable_face, reset_allowed, "replace your saved face") }}
+{% endif %}
+{% endblock %}

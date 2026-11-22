@@ -1,0 +1,42 @@
+{% extends "admin/layout.html" %}
+{% from "partials/admin_tables.html" import bookings_table, csrf_field %}
+{% from "partials/calendar.html" import calendar %}
+{% block page_title %}Schedule{% endblock %}
+{% block content %}
+<div class="admin-heading"><div><span class="eyebrow">Availability</span><h1>Schedule</h1><p>Confirmed events and date blocks determine public availability.</p></div></div>
+<section class="panel" style="margin-bottom:15px">
+  <div class="panel-header"><h2>Calendar</h2></div>
+  {% call(day) calendar(month_start, weeks, "/schedule", prev_month, next_month) %}
+    {%- set iso = day.isoformat() -%}
+    {%- set booked = iso in booked_dates -%}
+    {%- set blocked = iso in blocked_dates -%}
+    {%- set count = inquiry_counts.get(iso, 0) -%}
+    {%- set detail = "Booked" if booked else "Unavailable" if blocked else (count ~ (" inquiry" if count == 1 else " inquiries")) if count else "Available" -%}
+    <div class="calendar-day{{ ' is-unavailable' if booked or blocked }}{{ ' is-past' if day < today() }}" title="{{ iso }}"><strong>{{ day.day }}</strong><small>{{ detail }}</small></div>
+  {% endcall %}
+</section>
+<section class="panel">
+  <div class="panel-header"><h2>Bookings</h2><span class="pill green">{{ confirmed_count }} confirmed</span></div>
+  {{ bookings_table(bookings) }}
+</section>
+<section class="panel">
+  <div class="panel-header"><h2>Block a date</h2></div>
+  <form class="inline-form" method="post" action="/blocks">
+    {{ csrf_field() }}
+    <input name="date" type="date" min="{{ today().isoformat() }}" required aria-label="Date to block" value="{{ form.date }}">
+    <input name="reason" maxlength="120" placeholder="Reason (e.g. Team unavailable)" aria-label="Reason" value="{{ form.reason }}">
+    <button class="button button-small">Block date</button>
+  </form>
+  {% if blocks %}
+  <div class="table-scroll" style="margin-top:12px"><table>
+    <thead><tr><th>Date</th><th>Reason</th><th></th></tr></thead>
+    <tbody>
+    {% for block in blocks %}
+      <tr><td>{{ block.date | date_ph }}</td><td>{{ block.reason or "Unavailable" }}</td>
+        <td><form method="post" action="/blocks/{{ block.id }}/delete" data-confirm="Unblock {{ block.date | date_ph }}?">{{ csrf_field() }}<button class="button button-danger button-small">Remove</button></form></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</section>
+{% endblock %}

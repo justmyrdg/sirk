@@ -1,0 +1,22 @@
+{#
+  calendar(month_start, weeks, base_url) with a caller block that renders one day:
+    {% call(day) calendar(...) %} ...cell for `day`... {% endcall %}
+#}
+{% macro calendar(month_start, weeks, base_url, prev_month, next_month, lead_days=0) %}
+<div class="calendar-panel">
+  <div class="calendar-controls">
+    <h2>{{ month_start | month_ph }}</h2>
+    <div>
+      <a class="button button-quiet button-small" href="{{ base_url }}?month={{ prev_month.strftime('%Y-%m') }}" aria-label="Previous month">←</a>
+      <a class="button button-quiet button-small" href="{{ base_url }}?month={{ next_month.strftime('%Y-%m') }}" aria-label="Next month">→</a>
+    </div>
+  </div>
+  <div class="calendar-grid">
+    {% for name in ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] %}<div class="calendar-day-name">{{ name }}</div>{% endfor %}
+    {% for week in weeks %}{% for day in week %}
+      {% if day is none %}<div class="calendar-day is-empty" aria-hidden="true"></div>{% else %}{{ caller(day) }}{% endif %}
+    {% endfor %}{% endfor %}
+  </div>
+  <div class="calendar-legend"><span><i class="legend-dot"></i> Available</span><span><i class="legend-dot red"></i> Booked / unavailable</span><span><i class="legend-dot gray"></i> Past date</span>{% if lead_days %}<span><i class="legend-dot soon"></i> Too soon (less than {{ lead_days }} day{{ "" if lead_days == 1 else "s" }} away)</span>{% endif %}</div>
+</div>
+{% endmacro %}

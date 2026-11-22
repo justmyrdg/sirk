@@ -1,0 +1,12 @@
+{% extends "admin/base.html" %}
+{% block page_title %}Setup is turned off{% endblock %}
+{% block admin_main %}
+<main class="auth-wrap">
+  <section class="auth-card">
+    <span class="eyebrow">First-time setup</span>
+    <h1>Setup is turned off.</h1>
+    <p>No admin account exists yet. To create the first one, add <code>FIP_ALLOW_SETUP=true</code> to the <code>.env</code> file, restart the app, and reload this page.</p>
+    <p class="field-hint">After creating the account, set it back to <code>FIP_ALLOW_SETUP=false</code>.</p>
+  </section>
+</main>
+{% endblock %}

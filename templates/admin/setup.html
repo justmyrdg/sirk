@@ -1,0 +1,17 @@
+{% extends "admin/base.html" %}
+{% from "partials/account_fields.html" import account_fields %}
+{% block page_title %}First-time setup{% endblock %}
+{% block admin_main %}
+<main class="auth-wrap">
+  <section class="auth-card">
+    <span class="eyebrow">First-time setup</span>
+    <h1>Create the first admin account.</h1>
+    <p>Use your email and password, then enroll your face for login. Additional admins are added later from inside the admin area.</p>
+    <form data-flow="setup" data-next="/">
+      {{ account_fields("setup") }}
+      <button class="button">Create account and scan face</button>
+    </form>
+    {% include "partials/face_camera.html" %}
+  </section>
+</main>
+{% endblock %}
