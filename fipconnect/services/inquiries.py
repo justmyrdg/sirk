@@ -136,7 +136,8 @@ def history(inquiry):
 def change_status(inquiry_id, status, expected_revenue, remark=""):
     if status not in STATUSES:
         reject("Choose a valid inquiry status.")
-    remark = str(remark or "").strip()
+    # Browsers send line breaks as \r\n; count (and store) each as one character.
+    remark = str(remark or "").replace("\r\n", "\n").replace("\r", "\n").strip()
     if len(remark) > MAX_REMARK:
         reject(f"Remarks can be at most {MAX_REMARK} characters.")
     inquiry = db.session.get(Inquiry, inquiry_id)
@@ -182,5 +183,6 @@ def change_status(inquiry_id, status, expected_revenue, remark=""):
         db.session.add(InquiryUpdate(inquiry_id=inquiry.id, status=status, remark=remark))
     db.session.commit()
     if changed or remark:
-        notify_client(inquiry.to_dict(), status, remark)
+        # Same status, new remark: sent as a note, not as the status news again.
+        notify_client(inquiry.to_dict(), status, remark, note_only=not changed)
     return inquiry

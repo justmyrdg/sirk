@@ -85,6 +85,20 @@ class RemarkRulesTests(RemarksTestCase):
         self.assertEqual(len(self.updates()), 1)
         self.assertEqual(db.session.get(Inquiry, self.inquiry_id).status, "Submitted")
 
+    def test_line_breaks_count_once(self):
+        # Browsers send each line break as \r\n: 1083 characters as sent, 903 as written.
+        remark = ("line\r\n" * 180) + "end"
+        self.assertGreater(len(remark), 1000)
+        notify = self.change("Under Review", remark)
+        self.assertEqual(self.updates()[-1].remark, ("line\n" * 180) + "end")
+        notify.assert_called_once()
+
+    def test_remark_only_is_sent_as_a_note(self):
+        notify = self.change("Submitted", "We will reply within 2 days.")
+        self.assertEqual(notify.call_args.kwargs, {"note_only": True})
+        changed = self.change("Under Review", "Checking.")
+        self.assertEqual(changed.call_args.kwargs, {"note_only": False})
+
     def test_history_is_newest_first(self):
         self.change("Under Review", "First")
         self.change("Approved", "Second")
@@ -129,6 +143,31 @@ class RemarkMessagesTests(DatabaseTestCase):
         self.assertIn("Pay &lt;b&gt;50%&lt;/b&gt; deposit", html)
         self.assertIn("Note from the FIP team: Pay <b>50%</b> deposit", text)
 
+    def test_note_only_email_does_not_repeat_the_status_news(self):
+        smtp = MagicMock()
+        with patch.dict(os.environ, SMTP_ENV), patch.object(notifications.smtplib, "SMTP", smtp):
+            with self.app.app_context():
+                notifications.send_client_email(dict(CLIENT), "Approved", "Send the deposit.", note_only=True)
+        message = smtp.return_value.__enter__.return_value.send_message.call_args.args[0]
+        html = message.get_body(preferencelist=("html",)).get_content()
+        text = message.get_body(preferencelist=("plain",)).get_content()
+        self.assertEqual(message["Subject"], "FIPConnect: a note about your inquiry (FIP-AAAA2222)")
+        self.assertIn("A note about your inquiry", html)
+        self.assertNotIn("Good news", html)
+        self.assertNotIn("Good news", text)
+        self.assertIn("Send the deposit.", html)
+
+    def test_note_only_sms_does_not_repeat_the_status_news(self):
+        response = MagicMock(status=201)
+        response.__enter__.return_value = response
+        with patch.dict(os.environ, TWILIO_ENV),                 patch.object(notifications.urllib.request, "urlopen", return_value=response) as urlopen:
+            with self.app.app_context():
+                notifications.send_client_sms(dict(CLIENT), "Approved", "Send the deposit.", note_only=True)
+        from urllib.parse import parse_qs
+        body = parse_qs(urlopen.call_args.args[0].data.decode())["Body"][0]
+        self.assertNotIn("APPROVED", body)
+        self.assertIn("Note: Send the deposit.", body)
+
     def test_email_without_remark_has_no_note(self):
         html, text = self.email("")
         self.assertNotIn("Note from the FIP team", html)
@@ -137,7 +176,8 @@ class RemarkMessagesTests(DatabaseTestCase):
     def test_sms_includes_trimmed_remark(self):
         self.assertIn("Note: Bring the contract.", self.sms("Bring the contract."))
         long_body = self.sms("y" * 400)
-        self.assertIn("Note: " + "y" * 299 + "…", long_body)
+        self.assertIn("Note: " + "y" * 297 + "...", long_body)
+        self.assertNotIn("…", long_body)  # keeps the SMS in the cheaper GSM-7 encoding
         self.assertNotIn("y" * 300, long_body)
         self.assertNotIn("Note:", self.sms(""))
 
@@ -145,9 +185,10 @@ class RemarkMessagesTests(DatabaseTestCase):
         with self.app.app_context(), \
                 patch.object(notifications, "send_client_email") as email, \
                 patch.object(notifications, "send_client_sms") as sms:
-            notifications.notify_client(dict(CLIENT), "Approved", "See you soon")
+            notifications.notify_client(dict(CLIENT), "Approved", "See you soon", note_only=True)
         self.assertEqual(email.call_args.args[1:], ("Approved", "See you soon"))
-        self.assertEqual(sms.call_args.args[1:], ("Approved", "See you soon"))
+        self.assertEqual(email.call_args.kwargs, {"note_only": True})
+        self.assertEqual(sms.call_args.kwargs, {"note_only": True})
 
 
 class RemarkPagesTests(RemarksTestCase):

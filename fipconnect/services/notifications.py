@@ -37,6 +37,10 @@ STATUS_COLOURS = {
 }
 DEFAULT_COLOUR = STATUS_COLOURS["Submitted"]
 SMS_REMARK_LIMIT = 300  # keeps the text message short
+# A remark added without a status change is sent as a note, not as the status news again.
+NOTE_HEADLINE = "A note about your inquiry"
+NOTE_TEXT = "The FIP team added a note about your event inquiry. Your inquiry status has not changed."
+NOTE_SMS = "FIP added a note about your FIPConnect inquiry."
 
 
 def written_date(value):
@@ -61,7 +65,7 @@ def add_designed_version(message, context):
         )
 
 
-def send_client_email(inquiry, status, remark=""):
+def send_client_email(inquiry, status, remark="", note_only=False):
     """Send a client update when SMTP settings are configured."""
     host = os.environ.get("FIP_SMTP_HOST")
     username = os.environ.get("FIP_SMTP_USERNAME")
@@ -83,12 +87,17 @@ def send_client_email(inquiry, status, remark=""):
         "Cancelled": "Your event inquiry has been marked as cancelled. Please contact our team if you believe this is a mistake.",
     }
     message = EmailMessage()
-    subject = f"FIPConnect inquiry update: {status} ({reference})"
+    if note_only:
+        subject = f"FIPConnect: a note about your inquiry ({reference})"
+        headline, text = NOTE_HEADLINE, NOTE_TEXT
+    else:
+        subject = f"FIPConnect inquiry update: {status} ({reference})"
+        headline = HEADLINES.get(status, "Your inquiry was updated")
+        text = status_messages.get(status, "Your inquiry status has been updated.")
     message["Subject"] = subject
     message["From"] = sender
     message["To"] = inquiry["email"]
     name = inquiry.get("name", "Client")
-    text = status_messages.get(status, "Your inquiry status has been updated.")
     status_url = current_app.config["CLIENT_URL"].rstrip("/") + "/status"
     # Plain-text copy, for mail apps that don't show HTML.
     message.set_content(
@@ -103,7 +112,7 @@ def send_client_email(inquiry, status, remark=""):
         "Thank you,\nFlare Infinity Productions"
     )
     add_designed_version(message, {
-        "subject": subject, "status": status, "headline": HEADLINES.get(status, "Your inquiry was updated"),
+        "subject": subject, "status": status, "headline": headline,
         "colour": STATUS_COLOURS.get(status, DEFAULT_COLOUR), "name": name, "message": text,
         "event_name": event_name, "event_date": event_date, "reference": reference, "status_url": status_url,
         "remark": remark,
@@ -125,7 +134,7 @@ def send_client_email(inquiry, status, remark=""):
         smtp.send_message(message)
     return True
 
-def send_client_sms(inquiry, status, remark=""):
+def send_client_sms(inquiry, status, remark="", note_only=False):
     """Send an SMS through Twilio when its credentials are configured."""
     account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
     auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
@@ -152,9 +161,11 @@ def send_client_sms(inquiry, status, remark=""):
         "Declined": "Your FIPConnect event inquiry was not approved. Please contact Flare Infinity Productions for assistance.",
         "Cancelled": "Your FIPConnect event inquiry has been marked as cancelled. Contact FIP if you have questions.",
     }
-    body = f"{sms_messages.get(status, 'Your inquiry status has been updated.')} Event: {event_name}. Status: {status}. Tracking code: {reference}. Use this code on the FIPConnect website to track your inquiry."
+    lead = NOTE_SMS if note_only else sms_messages.get(status, "Your inquiry status has been updated.")
+    body = f"{lead} Event: {event_name}. Status: {status}. Tracking code: {reference}. Use this code on the FIPConnect website to track your inquiry."
     if remark:
-        short = remark if len(remark) <= SMS_REMARK_LIMIT else remark[:SMS_REMARK_LIMIT - 1] + "…"
+        # Plain "..." (not "…") keeps the SMS in the cheaper GSM-7 encoding.
+        short = remark if len(remark) <= SMS_REMARK_LIMIT else remark[:SMS_REMARK_LIMIT - 3] + "..."
         body += f" Note: {short}"
     url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
     data = urllib.parse.urlencode({"From": from_number, "To": to_number, "Body": body}).encode("utf-8")
@@ -167,13 +178,13 @@ def send_client_sms(inquiry, status, remark=""):
     with urllib.request.urlopen(sms_request, timeout=15) as response:
         return 200 <= response.status < 300
 
-def notify_client(inquiry, status, remark=""):
+def notify_client(inquiry, status, remark="", note_only=False):
     # Notification failures must not undo a saved inquiry/status update.
     try:
-        send_client_email(inquiry, status, remark)
+        send_client_email(inquiry, status, remark, note_only=note_only)
     except Exception:
         current_app.logger.exception("Unable to send FIPConnect email notification.")
     try:
-        send_client_sms(inquiry, status, remark)
+        send_client_sms(inquiry, status, remark, note_only=note_only)
     except Exception:
         current_app.logger.exception("Unable to send FIPConnect SMS notification.")
