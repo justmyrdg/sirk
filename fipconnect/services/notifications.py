@@ -10,9 +10,54 @@ import smtplib
 import ssl
 import urllib.parse
 import urllib.request
+from datetime import date
 from email.message import EmailMessage
+from email.utils import make_msgid
+from pathlib import Path
 
-from flask import current_app
+from flask import current_app, render_template
+
+LOGO = Path("images") / "logo_flare.png"
+HEADLINES = {
+    "Submitted": "We received your inquiry",
+    "Under Review": "Your inquiry is being reviewed",
+    "Awaiting Client Response": "We need your response",
+    "Approved": "Your inquiry is approved",
+    "Declined": "Your inquiry was not approved",
+    "Cancelled": "Your inquiry was cancelled",
+}
+# Badge background / text colour per status.
+STATUS_COLOURS = {
+    "Submitted": {"background": "#e8eefb", "text": "#173f7a"},
+    "Under Review": {"background": "#fff4e5", "text": "#9a4d00"},
+    "Awaiting Client Response": {"background": "#fff4e5", "text": "#9a4d00"},
+    "Approved": {"background": "#e3f4ea", "text": "#1f7a4d"},
+    "Declined": {"background": "#fde8e7", "text": "#b42318"},
+    "Cancelled": {"background": "#eef0f3", "text": "#4b5565"},
+}
+DEFAULT_COLOUR = STATUS_COLOURS["Submitted"]
+
+
+def written_date(value):
+    """'2026-12-16' -> 'December 16, 2026' (anything else is shown as given)."""
+    try:
+        day = date.fromisoformat(str(value)[:10])
+    except ValueError:
+        return value
+    return f"{day:%B} {day.day}, {day.year}"
+
+
+def add_designed_version(message, context):
+    """Add the branded HTML version, with the logo embedded in the email
+    (so it shows without the mail app loading outside images)."""
+    logo_cid = make_msgid(domain="fipconnect")
+    html = render_template("email/status_update.html", logo_cid=logo_cid[1:-1], **context)
+    message.add_alternative(html, subtype="html")
+    logo = Path(current_app.static_folder) / LOGO
+    if logo.is_file():
+        message.get_payload()[1].add_related(
+            logo.read_bytes(), "image", "png", cid=logo_cid, filename="logo.png"
+        )
 
 
 def send_client_email(inquiry, status):
@@ -27,7 +72,7 @@ def send_client_email(inquiry, status):
 
     reference = inquiry.get("reference", "")
     event_name = inquiry.get("eventName", "your event")
-    event_date = inquiry.get("eventDate", "")
+    event_date = written_date(inquiry.get("eventDate", ""))
     status_messages = {
         "Submitted": "We have received your event inquiry and our team will review it.",
         "Under Review": "Your event inquiry is currently being reviewed by our team.",
@@ -37,19 +82,29 @@ def send_client_email(inquiry, status):
         "Cancelled": "Your event inquiry has been marked as cancelled. Please contact our team if you believe this is a mistake.",
     }
     message = EmailMessage()
-    message["Subject"] = f"FIPConnect inquiry update: {status} ({reference})"
+    subject = f"FIPConnect inquiry update: {status} ({reference})"
+    message["Subject"] = subject
     message["From"] = sender
     message["To"] = inquiry["email"]
+    name = inquiry.get("name", "Client")
+    text = status_messages.get(status, "Your inquiry status has been updated.")
+    status_url = current_app.config["CLIENT_URL"].rstrip("/") + "/status"
+    # Plain-text copy, for mail apps that don't show HTML.
     message.set_content(
-        f"Hello {inquiry.get('name', 'Client')},\n\n"
-        f"{status_messages.get(status, 'Your inquiry status has been updated.')}\n\n"
+        f"Hello {name},\n\n"
+        f"{text}\n\n"
         f"Event: {event_name}\nRequested date: {event_date}\n"
         f"Inquiry status: {status}\n"
         f"Tracking/reference code: {reference}\n\n"
-        "You can track your inquiry on the FIPConnect website by opening the inquiry status page and entering this code. "
+        f"You can track your inquiry at {status_url} by entering this code. "
         "Keep this code private. An approved inquiry is subject to the next booking and event-detail steps communicated by FIP.\n\n"
         "Thank you,\nFlare Infinity Productions"
     )
+    add_designed_version(message, {
+        "subject": subject, "status": status, "headline": HEADLINES.get(status, "Your inquiry was updated"),
+        "colour": STATUS_COLOURS.get(status, DEFAULT_COLOUR), "name": name, "message": text,
+        "event_name": event_name, "event_date": event_date, "reference": reference, "status_url": status_url,
+    })
     port = int(os.environ.get("FIP_SMTP_PORT", "587"))
     timeout = int(os.environ.get("FIP_SMTP_TIMEOUT", "15"))
     use_ssl = os.environ.get("FIP_SMTP_USE_SSL", "false").lower() == "true"
