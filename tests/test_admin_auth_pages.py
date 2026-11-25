@@ -156,6 +156,18 @@ class AdminAuthPageTests(DatabaseTestCase):
         script = (ROOT / "admin_static" / "admin.js").read_text(encoding="utf-8")
         self.assertRegex(script, r"await openAnyCamera\(\);\s*await listCameras\(\);\s*rememberOpenCamera\(\);")
 
+    def test_camera_preview_is_a_face_shaped_frame(self):
+        html = self.get("/setup").get_data(as_text=True)
+        self.assertRegex(html, r'<div class="face-frame"[^>]*>\s*<video id="face-video"')
+        css = (ROOT / "static" / "css" / "styles.css").read_text(encoding="utf-8")
+        frame = re.search(r"\.face-frame \{([^}]*)\}", css)
+        self.assertIsNotNone(frame)
+        self.assertIn("aspect-ratio: 3 / 4", frame.group(1))
+        self.assertIn(".face-frame::after", css)  # the oval face guide
+        # the photo sent is the same portrait area the preview shows
+        script = (ROOT / "admin_static" / "admin.js").read_text(encoding="utf-8")
+        self.assertIn("const FRAME_RATIO = 3 / 4;", script)
+
     def test_logout_with_stale_token_still_signs_out(self):
         self.create_first_admin()
         self.login()

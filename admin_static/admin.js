@@ -200,13 +200,27 @@
     }
   }
 
+  // The preview shows the centre of the video in a 3:4 portrait frame; send
+  // exactly that area, so the face fills the photo the way it fills the frame.
+  const FRAME_RATIO = 3 / 4;
+
+  function visibleArea(width, height) {
+    if (width / height > FRAME_RATIO) {
+      const cropWidth = Math.round(height * FRAME_RATIO);
+      return { x: Math.round((width - cropWidth) / 2), y: 0, width: cropWidth, height };
+    }
+    const cropHeight = Math.round(width / FRAME_RATIO);
+    return { x: 0, y: Math.round((height - cropHeight) / 2), width, height: cropHeight };
+  }
+
   async function capturePhoto() {
     if (!video.videoWidth || !video.videoHeight) throw new Error("The camera is not ready yet. Please try again.");
-    const scale = Math.min(1, 720 / Math.max(video.videoWidth, video.videoHeight));
+    const area = visibleArea(video.videoWidth, video.videoHeight);
+    const scale = Math.min(1, 720 / Math.max(area.width, area.height));
     const canvas = document.createElement("canvas");
-    canvas.width = Math.round(video.videoWidth * scale);
-    canvas.height = Math.round(video.videoHeight * scale);
-    canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.width = Math.round(area.width * scale);
+    canvas.height = Math.round(area.height * scale);
+    canvas.getContext("2d").drawImage(video, area.x, area.y, area.width, area.height, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.82));
     if (!blob) throw new Error("Could not capture the camera image. Please try again.");
     const dataUrl = await new Promise((resolve, reject) => {

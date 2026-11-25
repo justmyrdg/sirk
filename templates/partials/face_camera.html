@@ -2,8 +2,10 @@
 <div class="notice notice-danger" data-camera-error role="alert" hidden></div>
 <div class="face-capture" id="face-capture" hidden>
   <div class="field" data-camera-choice hidden><label for="face-camera-select">Camera</label><select id="face-camera-select"></select></div>
-  <video id="face-video" autoplay muted playsinline></video>
-  <p>Look directly at the camera and make sure you are the only person in the frame.</p>
+  <div class="face-frame">
+    <video id="face-video" autoplay muted playsinline></video>
+  </div>
+  <p>Fit your face inside the oval and look directly at the camera. Make sure you are the only person in the frame.</p>
   <div class="face-capture-actions">
     <button class="button" type="button" data-camera="capture">Capture face</button>
     <button class="button button-quiet" type="button" data-camera="cancel">Cancel</button>
