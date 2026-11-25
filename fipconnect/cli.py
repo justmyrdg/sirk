@@ -216,6 +216,23 @@ def register_cli(app):
             "open Re-enroll face, confirm with their password, and scan their face."
         )
 
+    @app.cli.command("clear-face")
+    @click.argument("email")
+    def clear_face_command(email):
+        """Delete an admin's saved face (e.g. it can't be read after a secret-key
+        change). Their next password sign-in can only enroll a new face."""
+        admin = db.session.scalar(select(Admin).where(Admin.email == email.strip().lower()))
+        if admin is None:
+            click.echo(f"No admin account with email {email!r}.", err=True)
+            raise SystemExit(1)
+        admin.face_embedding = None
+        admin.face_model = None
+        db.session.commit()
+        click.echo(
+            f"Saved face cleared for {admin.email}. On their next sign-in the password "
+            "lets them enroll a new face, and nothing else until they do."
+        )
+
     @app.cli.command("import-json")
     @click.argument("path", required=False, type=click.Path(dir_okay=False, path_type=Path))
     def import_json_command(path):

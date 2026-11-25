@@ -247,3 +247,26 @@ class EnrollOnlyTests(FaceLoginBase):
         replay = self.enroll(return_value=[0.7] * 128)
         self.assertEqual(replay.status_code, 403)
         self.assertEqual(replay.get_json()["error"], "Confirm it's you first.")
+
+
+class FaceLoginRecoveryTests(FaceLoginBase):
+    def test_start_over_clears_the_pending_sign_in(self):
+        self.password_login()
+        self.get("/login")  # the "Start over" link
+        response, verify = self.face_step(True)
+        self.assertEqual(response.status_code, 401)
+        verify.assert_not_called()
+
+    def test_clear_face_command_moves_account_to_enroll_only(self):
+        # e.g. the secret key changed, so the saved face can no longer be read
+        result = self.app.test_cli_runner().invoke(args=["clear-face", "ADMIN@example.com"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        row = self.admin_row()
+        self.assertIsNone(row.face_embedding)
+        self.assertIsNone(row.face_model)
+        response = self.password_login()
+        self.assertTrue(response.headers["Location"].endswith("/account/face"))
+
+    def test_clear_face_command_unknown_email(self):
+        result = self.app.test_cli_runner().invoke(args=["clear-face", "nobody@example.com"])
+        self.assertEqual(result.exit_code, 1)

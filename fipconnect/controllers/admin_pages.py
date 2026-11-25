@@ -37,6 +37,9 @@ def login():
         return redirect("/setup", code=303)
     if current_admin() is not None:
         return redirect("/", code=303)
+    # Back at the password ("Start over"): drop any half-finished sign-in.
+    session.pop("pending_admin_id", None)
+    session.pop("pending_at", None)
     error = SIGN_IN_TIMED_OUT if request.args.get("expired") == "1" else None
     return admin_page("admin/login.html", email="", error=error)
 
