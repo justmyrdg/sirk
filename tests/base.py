@@ -15,8 +15,19 @@ ROOT = Path(__file__).resolve().parents[1]
 _schema_ready = False
 
 
+# Real email/SMS credentials from .env must never reach the tests: tests that
+# need them patch their own fake values in.
+REAL_NOTIFICATION_SETTINGS = (
+    "FIP_SMTP_HOST", "FIP_SMTP_PORT", "FIP_SMTP_USERNAME", "FIP_SMTP_PASSWORD",
+    "FIP_SMTP_FROM", "FIP_SMTP_USE_SSL", "FIP_SMTP_TIMEOUT",
+    "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER",
+)
+
+
 def test_database_uri():
     load_env_file(ROOT / ".env")
+    for key in REAL_NOTIFICATION_SETTINGS:
+        os.environ.pop(key, None)
     uri = os.environ.get("TEST_DATABASE_URL", "").strip()
     if not uri:
         raise RuntimeError(
