@@ -11,6 +11,8 @@
     <div class="status-result" aria-live="polite">
       {% if inquiry %}
       <div class="notice notice-success"><strong>{{ inquiry.event_name }}</strong><br>Status: {{ pill(inquiry.status) }}<br>Requested date: {{ inquiry.event_date | date_ph }}<br>Submitted: {{ inquiry.created_at | date_ph }}<br><span class="field-hint">The FIP team will contact you using the details provided in your inquiry.</span></div>
+      <h2 class="status-timeline-title">Updates from the FIP team</h2>
+      {% include "partials/inquiry_timeline.html" %}
       {% elif error %}
       <div class="notice notice-danger">{{ error }}</div>
       {% endif %}

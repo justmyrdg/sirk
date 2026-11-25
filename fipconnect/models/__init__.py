@@ -4,6 +4,7 @@ from fipconnect.models.block import Block
 from fipconnect.models.booking import Booking
 from fipconnect.models.defaults import DEFAULT_LANDING, DEFAULT_SERVICES
 from fipconnect.models.inquiry import Inquiry
+from fipconnect.models.inquiry_update import InquiryUpdate
 from fipconnect.models.service import Service
 from fipconnect.models.site_settings import SiteSettings
 
@@ -16,7 +17,7 @@ def seed_defaults(session):
 
 
 __all__ = [
-    "Admin", "Block", "Booking", "Inquiry", "Service", "SiteSettings",
+    "Admin", "Block", "Booking", "Inquiry", "InquiryUpdate", "Service", "SiteSettings",
     "STATUSES", "PENDING_STATUSES", "BOOKING_STATUSES",
     "DEFAULT_LANDING", "DEFAULT_SERVICES", "seed_defaults",
 ]

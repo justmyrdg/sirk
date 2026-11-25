@@ -1,0 +1,10 @@
+{# An inquiry's updates, newest first. Needs `updates` (and `pill` imported by the page). #}
+{% from "partials/status_pill.html" import pill as timeline_pill %}
+<ol class="status-timeline">
+  {% for update in updates %}
+  <li>
+    <div class="status-timeline-head">{{ timeline_pill(update.status) }} <span class="field-hint">{{ update.created_at | date_ph }}</span></div>
+    {% if update.remark %}<p class="status-timeline-remark">{{ update.remark }}</p>{% endif %}
+  </li>
+  {% endfor %}
+</ol>

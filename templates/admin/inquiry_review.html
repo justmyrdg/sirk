@@ -24,8 +24,14 @@
       </select>
     </div>
     <div class="field" style="margin-top:14px"><label for="expected-revenue">Expected revenue if approved (₱)</label><input id="expected-revenue" name="expectedRevenue" type="number" min="0" step="100" value="{{ form.expectedRevenue }}" placeholder="Optional"></div>
+    <div class="field" style="margin-top:14px"><label for="review-remark">Remarks for the client</label><textarea id="review-remark" name="remark" rows="3" maxlength="1000" placeholder="Optional, e.g. Please send the 50% deposit by Dec 10." aria-describedby="review-remark-hint">{{ form.remark }}</textarea>
+      <span class="field-hint" id="review-remark-hint">The client sees this on the status page and in the email/SMS. Saving a remark notifies the client even if the status stays the same.</span></div>
     <p class="field-hint">Approving confirms the booking and marks the date unavailable. The client is notified by email/SMS when those are set up.</p>
     <div class="modal-actions"><a class="button button-quiet" href="/inquiries">Cancel</a><button class="button">Save status</button></div>
   </form>
+</section>
+<section class="panel" style="margin-top:18px">
+  <div class="panel-header"><h2>History</h2></div>
+  {% include "partials/inquiry_timeline.html" %}
 </section>
 {% endblock %}

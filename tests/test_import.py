@@ -133,6 +133,15 @@ class ImportTests(DatabaseTestCase):
         self.assertEqual(verify.call_args.args[1], [0.1] * 128)
         self.assertEqual(client.get("/admins/new", **base).status_code, 200)
 
+    def test_imported_inquiries_get_a_history(self):
+        self.run_import(export_file())
+        from fipconnect.services.inquiries import history
+        with self.app.app_context():
+            approved = [u.status for u in history(db.session.get(Inquiry, "inq-one"))]
+            submitted = [u.status for u in history(db.session.get(Inquiry, "inq-two"))]
+        self.assertEqual(approved, ["Approved", "Submitted"])
+        self.assertEqual(submitted, ["Submitted"])
+
     def test_import_accepts_legacy_single_admin_key(self):
         data = export_file()
         data["admin"] = data.pop("admins")[0]

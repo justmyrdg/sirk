@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from fipconnect.extensions import db
-from fipconnect.models import STATUSES, Booking, Inquiry
+from fipconnect.models import STATUSES, Booking, Inquiry, InquiryUpdate
 from fipconnect.models._types import as_decimal
 from fipconnect.services.availability import is_unavailable, lock_date
 from fipconnect.services.errors import reject
@@ -104,6 +104,7 @@ def submit_inquiry(data):
             **fields,
         )
         db.session.add(inquiry)
+        db.session.add(InquiryUpdate(inquiry_id=inquiry.id, status="Submitted", remark=""))
         try:
             db.session.commit()
             break
@@ -121,9 +122,23 @@ def find_by_reference(code):
     return db.session.scalar(select(Inquiry).where(Inquiry.reference == code))
 
 
-def change_status(inquiry_id, status, expected_revenue):
+MAX_REMARK = 1000
+
+
+def history(inquiry):
+    """The inquiry's updates, newest first."""
+    return db.session.scalars(
+        select(InquiryUpdate).where(InquiryUpdate.inquiry_id == inquiry.id)
+        .order_by(InquiryUpdate.created_at.desc(), InquiryUpdate.id.desc())
+    ).all()
+
+
+def change_status(inquiry_id, status, expected_revenue, remark=""):
     if status not in STATUSES:
         reject("Choose a valid inquiry status.")
+    remark = str(remark or "").strip()
+    if len(remark) > MAX_REMARK:
+        reject(f"Remarks can be at most {MAX_REMARK} characters.")
     inquiry = db.session.get(Inquiry, inquiry_id)
     if inquiry is None:
         reject("Inquiry not found.", 404)
@@ -159,9 +174,13 @@ def change_status(inquiry_id, status, expected_revenue):
             )
     elif booking and status in {"Declined", "Cancelled"} and booking.status == "Confirmed":
         booking.status = "Cancelled"
-    previous_status = inquiry.status
+    changed = inquiry.status != status
     inquiry.status = status
+    # A status change or a new remark is one step in the client's history,
+    # and the client is told about it.
+    if changed or remark:
+        db.session.add(InquiryUpdate(inquiry_id=inquiry.id, status=status, remark=remark))
     db.session.commit()
-    if previous_status != status:
-        notify_client(inquiry.to_dict(), status)
+    if changed or remark:
+        notify_client(inquiry.to_dict(), status, remark)
     return inquiry

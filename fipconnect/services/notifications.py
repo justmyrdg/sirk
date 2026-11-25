@@ -36,6 +36,7 @@ STATUS_COLOURS = {
     "Cancelled": {"background": "#eef0f3", "text": "#4b5565"},
 }
 DEFAULT_COLOUR = STATUS_COLOURS["Submitted"]
+SMS_REMARK_LIMIT = 300  # keeps the text message short
 
 
 def written_date(value):
@@ -60,7 +61,7 @@ def add_designed_version(message, context):
         )
 
 
-def send_client_email(inquiry, status):
+def send_client_email(inquiry, status, remark=""):
     """Send a client update when SMTP settings are configured."""
     host = os.environ.get("FIP_SMTP_HOST")
     username = os.environ.get("FIP_SMTP_USERNAME")
@@ -96,7 +97,8 @@ def send_client_email(inquiry, status):
         f"Event: {event_name}\nRequested date: {event_date}\n"
         f"Inquiry status: {status}\n"
         f"Tracking/reference code: {reference}\n\n"
-        f"You can track your inquiry at {status_url} by entering this code. "
+        + (f"Note from the FIP team: {remark}\n\n" if remark else "")
+        + f"You can track your inquiry at {status_url} by entering this code. "
         "Keep this code private. An approved inquiry is subject to the next booking and event-detail steps communicated by FIP.\n\n"
         "Thank you,\nFlare Infinity Productions"
     )
@@ -104,6 +106,7 @@ def send_client_email(inquiry, status):
         "subject": subject, "status": status, "headline": HEADLINES.get(status, "Your inquiry was updated"),
         "colour": STATUS_COLOURS.get(status, DEFAULT_COLOUR), "name": name, "message": text,
         "event_name": event_name, "event_date": event_date, "reference": reference, "status_url": status_url,
+        "remark": remark,
     })
     port = int(os.environ.get("FIP_SMTP_PORT", "587"))
     timeout = int(os.environ.get("FIP_SMTP_TIMEOUT", "15"))
@@ -122,7 +125,7 @@ def send_client_email(inquiry, status):
         smtp.send_message(message)
     return True
 
-def send_client_sms(inquiry, status):
+def send_client_sms(inquiry, status, remark=""):
     """Send an SMS through Twilio when its credentials are configured."""
     account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
     auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
@@ -150,6 +153,9 @@ def send_client_sms(inquiry, status):
         "Cancelled": "Your FIPConnect event inquiry has been marked as cancelled. Contact FIP if you have questions.",
     }
     body = f"{sms_messages.get(status, 'Your inquiry status has been updated.')} Event: {event_name}. Status: {status}. Tracking code: {reference}. Use this code on the FIPConnect website to track your inquiry."
+    if remark:
+        short = remark if len(remark) <= SMS_REMARK_LIMIT else remark[:SMS_REMARK_LIMIT - 1] + "…"
+        body += f" Note: {short}"
     url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
     data = urllib.parse.urlencode({"From": from_number, "To": to_number, "Body": body}).encode("utf-8")
     credentials = base64.b64encode(f"{account_sid}:{auth_token}".encode("utf-8")).decode("ascii")
@@ -161,13 +167,13 @@ def send_client_sms(inquiry, status):
     with urllib.request.urlopen(sms_request, timeout=15) as response:
         return 200 <= response.status < 300
 
-def notify_client(inquiry, status):
+def notify_client(inquiry, status, remark=""):
     # Notification failures must not undo a saved inquiry/status update.
     try:
-        send_client_email(inquiry, status)
+        send_client_email(inquiry, status, remark)
     except Exception:
         current_app.logger.exception("Unable to send FIPConnect email notification.")
     try:
-        send_client_sms(inquiry, status)
+        send_client_sms(inquiry, status, remark)
     except Exception:
         current_app.logger.exception("Unable to send FIPConnect SMS notification.")

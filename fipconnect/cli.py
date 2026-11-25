@@ -17,6 +17,7 @@ from fipconnect.models import (
     Block,
     Booking,
     Inquiry,
+    InquiryUpdate,
     Service,
     SiteSettings,
 )
@@ -98,6 +99,16 @@ def _inquiries(data):
         )
 
 
+def _starting_history(inquiries):
+    """Imported inquiries: 'Submitted' when they were made, plus their current
+    status (dated now) if it has moved on since."""
+    for inquiry in inquiries:
+        yield InquiryUpdate(inquiry_id=inquiry.id, status="Submitted", remark="",
+                            created_at=inquiry.created_at)
+        if inquiry.status != "Submitted":
+            yield InquiryUpdate(inquiry_id=inquiry.id, status=inquiry.status, remark="")
+
+
 def _bookings(data):
     for record in data.get("bookings") or []:
         record_id = record.get("id")
@@ -171,6 +182,9 @@ def import_json(path):
             db.session.add_all(rows)
             db.session.flush()
             counts[name] = len(rows)
+            if name == "inquiries":
+                db.session.add_all(_starting_history(rows))
+                db.session.flush()
         if services:
             db.session.execute(delete(Service))
             db.session.add_all(services)

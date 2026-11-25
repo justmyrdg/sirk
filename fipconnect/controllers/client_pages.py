@@ -112,4 +112,5 @@ def lookup_status():
     if inquiry is None:
         return page("client/status.html", 404, reference=reference, inquiry=None,
                     error="No inquiry was found for that code.")
-    return page("client/status.html", reference=reference, inquiry=inquiry, error=None)
+    return page("client/status.html", reference=reference, inquiry=inquiry, error=None,
+                updates=inquiries.history(inquiry))

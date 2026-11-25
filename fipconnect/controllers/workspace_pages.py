@@ -147,24 +147,27 @@ def inquiry_list():
 def review_page(inquiry_id, form, error=None, status=200):
     inquiry = db.session.get(Inquiry, inquiry_id) or abort(404)
     return admin_page("admin/inquiry_review.html", status, active_tab="Inquiries",
-                      inquiry=inquiry, form=form, statuses=STATUSES, error=error)
+                      inquiry=inquiry, form=form, statuses=STATUSES, error=error,
+                      updates=inquiries.history(inquiry))
 
 
 @bp.get("/inquiries/<inquiry_id>")
 @page_admin_required
 def inquiry_review(inquiry_id):
     inquiry = db.session.get(Inquiry, inquiry_id) or abort(404)
-    return review_page(inquiry_id, {"status": inquiry.status, "expectedRevenue": plain_amount(inquiry.budget)})
+    return review_page(inquiry_id, {"status": inquiry.status, "expectedRevenue": plain_amount(inquiry.budget),
+                                    "remark": ""})
 
 
 @bp.post("/inquiries/<inquiry_id>")
 @page_admin_required
 def inquiry_update(inquiry_id):
     db.session.get(Inquiry, inquiry_id) or abort(404)
-    form = {"status": request.form.get("status", ""), "expectedRevenue": request.form.get("expectedRevenue", "")}
+    form = {"status": request.form.get("status", ""), "expectedRevenue": request.form.get("expectedRevenue", ""),
+            "remark": request.form.get("remark", "")}
     return handle_form(
         lambda message, status: review_page(inquiry_id, form, message, status),
-        lambda: inquiries.change_status(inquiry_id, form["status"], form["expectedRevenue"]),
+        lambda: inquiries.change_status(inquiry_id, form["status"], form["expectedRevenue"], form["remark"]),
         "Inquiry updated.", "/inquiries",
     )
 
