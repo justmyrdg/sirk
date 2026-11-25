@@ -16,6 +16,8 @@ from fipconnect.services.security import (
     api_error,
     csrf_token,
     current_admin,
+    enroll_only_ok,
+    is_enroll_only,
     pending_admin,
     require_csrf,
     sign_in,
@@ -183,11 +185,17 @@ def login_face():
 
 @bp.post("/api/admin/face")
 @admin_required
+@enroll_only_ok
 def update_admin_face():
     csrf_failure = require_csrf()
     if csrf_failure:
         return csrf_failure
-    if not step_up.is_fresh(current_admin()):
+    # Enroll-only sign-in: there is no saved face to confirm against, so no
+    # "confirm it's you" step (the accepted risk in the design).
+    # Checked on the server too, so a replayed enroll-only cookie can't replace a
+    # face that has since been saved.
+    first_enrollment = is_enroll_only() and not step_up.has_usable_face(current_admin())
+    if not first_enrollment and not step_up.is_fresh(current_admin()):
         return api_error(CONFIRM_FIRST, 403)
     payload = request.get_json(silent=True) or {}
     admin_id = session.get("admin_id")
@@ -198,7 +206,7 @@ def update_admin_face():
     admin = db.session.get(Admin, admin_id)
     if admin is None:
         return api_error("Sign in again before updating your face template.", 401)
-    if not step_up.consume(admin_id):
+    if not first_enrollment and not step_up.consume(admin_id):
         db.session.rollback()
         return api_error(CONFIRM_FIRST, 403)
     admin = db.session.get(Admin, admin_id)
@@ -207,6 +215,7 @@ def update_admin_face():
     admin.face_reset_until = None  # an operator's reset allowance is used up too
     db.session.commit()
     step_up.forget()
+    session.pop("must_enroll_face", None)
     return jsonify({"ok": True})
 
 

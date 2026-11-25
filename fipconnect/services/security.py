@@ -53,15 +53,40 @@ def admin_required(view):
             return api_error("Not found.", 404)
         if current_admin() is None:
             return api_error("Administrator sign-in is required.", 401)
+        if _blocked_by_enrollment(view):
+            return api_error(ENROLL_FIRST, 403)
         return view(*args, **kwargs)
 
     return wrapped
 
 
-def sign_in(admin):
+def sign_in(admin, enroll_only=False):
     session.clear()
     session["admin_id"] = admin.id
+    if enroll_only:
+        session["must_enroll_face"] = True
     return csrf_token()
+
+
+# ---- Enroll-only sign-in: the account has no face that can be checked ----------
+# Until a face is saved, only views marked with enroll_only_ok work.
+
+ENROLL_FIRST = "Enroll your face first."
+
+
+def is_enroll_only():
+    return session.get("must_enroll_face") is True
+
+
+def enroll_only_ok(view):
+    """Mark a view as usable while the admin must still enroll a face.
+    Put it below @admin_required / @page_admin_required."""
+    view.enroll_only_ok = True
+    return view
+
+
+def _blocked_by_enrollment(view):
+    return is_enroll_only() and not getattr(view, "enroll_only_ok", False)
 
 
 # ---- Pending sign-in: password accepted, face scan still to do ---------------
@@ -145,6 +170,8 @@ def page_admin_required(view):
             from fipconnect.services.accounts import admin_count
 
             return redirect("/setup" if admin_count() == 0 else "/login")
+        if _blocked_by_enrollment(view):
+            return redirect("/account/face", code=303)
         return view(*args, **kwargs)
 
     return wrapped

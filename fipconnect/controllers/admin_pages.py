@@ -9,6 +9,8 @@ from fipconnect.services.security import (
     admin_page_host,
     begin_pending,
     current_admin,
+    enroll_only_ok,
+    is_enroll_only,
     page_admin_required,
     pending_admin,
     sign_in,
@@ -52,8 +54,9 @@ def login_submit():
         # The password alone doesn't sign in: a face scan finishes it.
         begin_pending(admin)
         return redirect("/login/face", code=303)
-    sign_in(admin)
-    return redirect("/", code=303)
+    # No face that can be checked: signed in only to enroll one.
+    sign_in(admin, enroll_only=True)
+    return redirect("/account/face", code=303)
 
 
 @bp.get("/login/face")
@@ -96,8 +99,10 @@ def new_admin():
 
 @bp.get("/account/face")
 @page_admin_required
+@enroll_only_ok
 def face_enroll():
-    return admin_page("admin/face_enroll.html", updated=request.args.get("updated") == "1", **step_up_context())
+    return admin_page("admin/face_enroll.html", updated=request.args.get("updated") == "1",
+                      enroll_only=is_enroll_only(), **step_up_context())
 
 
 def step_up_context():

@@ -177,3 +177,73 @@ class FaceLoginTests(FaceLoginBase):
         self.assertNotIn('data-flow="login"', html)
         self.assertIn("You'll then scan your face.", html)
         self.assertIn(TIMED_OUT, self.get("/login?expired=1").get_data(as_text=True))
+
+
+class EnrollOnlyTests(FaceLoginBase):
+    """Accounts whose saved face can't be checked (none, or an old model)."""
+
+    def setUp(self):
+        super().setUp()
+        with self.app.app_context():
+            admin = db.session.scalar(db.select(Admin))
+            admin.face_model = "old-model"
+            db.session.commit()
+
+    def enroll(self, **mock):
+        mock = mock or {"return_value": [0.3] * 128}
+        with patch.object(face, "extract_face_embedding", **mock):
+            return self.api("/api/admin/face", faceImage=PHOTO)
+
+    def test_no_face_account_gets_enroll_only(self):
+        response = self.password_login()
+        self.assertTrue(response.headers["Location"].endswith("/account/face"))
+        self.assertTrue(self.get("/").headers["Location"].endswith("/account/face"))
+        self.assertTrue(self.get("/admins/new").headers["Location"].endswith("/account/face"))
+        html = self.get("/account/face").get_data(as_text=True)
+        self.assertIn("Enroll your face", html)
+        self.assertIn('data-flow="reenroll"', html)
+        self.assertNotIn('data-flow="verify"', html)
+
+    def test_enroll_only_blocks_other_apis(self):
+        self.password_login()
+        response = self.api("/api/register-admin", email="x@example.com",
+                            password="pw-123456789", faceImage=PHOTO)
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.get_json()["error"], "Enroll your face first.")
+        verify = self.api("/api/admin/verify-password", password="test-password-123")
+        self.assertEqual(verify.get_json()["error"], "Enroll your face first.")
+
+    def test_enrolling_needs_no_step_up_and_lifts_restriction(self):
+        self.password_login()
+        response = self.enroll()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.admin_row().face_model, face.FACE_MODEL)
+        self.assertEqual(self.get("/").status_code, 200)
+
+    def test_failed_enrollment_keeps_restriction(self):
+        self.password_login()
+        response = self.enroll(side_effect=ValueError("No face was detected."))
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(self.get("/").headers["Location"].endswith("/account/face"))
+
+    def test_enroll_only_logout_works(self):
+        self.password_login()
+        signed_out = self.logout()
+        self.assertTrue(signed_out.headers["Location"].endswith("/login"))
+        self.assertTrue(self.get("/account/face").headers["Location"].endswith("/login"))
+
+    def test_after_enrolling_next_sign_in_needs_face(self):
+        self.password_login()
+        self.enroll()
+        self.logout()
+        response = self.password_login()
+        self.assertTrue(response.headers["Location"].endswith("/login/face"))
+
+    def test_replayed_enroll_only_cookie_cannot_replace_a_saved_face(self):
+        self.password_login()
+        old_cookie = self.client.get_cookie("session", domain="admin.localhost").value
+        self.assertEqual(self.enroll().status_code, 200)
+        self.client.set_cookie("session", old_cookie, domain="admin.localhost")
+        replay = self.enroll(return_value=[0.7] * 128)
+        self.assertEqual(replay.status_code, 403)
+        self.assertEqual(replay.get_json()["error"], "Confirm it's you first.")

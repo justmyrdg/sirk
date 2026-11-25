@@ -139,11 +139,9 @@ class FIPConnectAppTests(DatabaseTestCase):
 
         signed_in = self.form_login("admin@example.com", "test-password-123")
         self.assertEqual(signed_in.status_code, 303)
-        # The saved face is the old model: an operator allows a reset, then the password confirms.
-        self.assertEqual(
-            self.app.test_cli_runner().invoke(args=["allow-face-reset", "admin@example.com"]).exit_code, 0
-        )
-        self.confirm_with_password()
+        # The saved face is the old model: the password signs in only to enroll a
+        # new face, with no "confirm it's you" step and no operator involved.
+        self.assertTrue(signed_in.headers["Location"].endswith("/account/face"))
         new_embedding = [0.25] * 128
         with patch.object(
             face, "extract_face_embedding", return_value=new_embedding
