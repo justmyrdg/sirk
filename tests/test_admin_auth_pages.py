@@ -129,6 +129,19 @@ class AdminAuthPageTests(DatabaseTestCase):
         self.assertIn("/api/login/face", script)
         self.assertIn("/api/register-admin", script)
 
+    def test_camera_panel_lets_you_choose_a_camera(self):
+        html = self.get("/setup").get_data(as_text=True)
+        self.assertRegex(html, r'<label for="face-camera-select">Camera</label>')
+        self.assertRegex(html, r'<select id="face-camera-select"[^>]*>')
+        self.assertRegex(html, r'data-camera-choice[^>]*hidden')  # only shown with 2+ cameras
+        script = (ROOT / "admin_static" / "admin.js").read_text(encoding="utf-8")
+        self.assertIn("enumerateDevices", script)
+        self.assertIn('kind === "videoinput"', script)
+        self.assertIn("deviceId: { exact:", script)
+        # the remembered choice must never break the page when storage is blocked
+        self.assertRegex(script, r"try\s*\{\s*(return\s+)?localStorage\.getItem")
+        self.assertRegex(script, r"try\s*\{\s*localStorage\.setItem")
+
     def test_logout_with_stale_token_still_signs_out(self):
         self.create_first_admin()
         self.login()

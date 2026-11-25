@@ -64,11 +64,77 @@
     errorBox.hidden = true;
   }
 
-  function stopCamera() {
+  // ---- Choosing a camera (devices with more than one) ----------------------
+  const cameraChoice = document.querySelector("[data-camera-choice]");
+  const cameraSelect = document.getElementById("face-camera-select");
+  const CAMERA_KEY = "fipconnect-camera";
+
+  function savedCamera() {
+    try { return localStorage.getItem(CAMERA_KEY); } catch (error) { return null; }
+  }
+
+  function saveCamera(deviceId) {
+    try { localStorage.setItem(CAMERA_KEY, deviceId); } catch (error) { /* storage blocked: not remembered */ }
+  }
+
+  function forgetCamera() {
+    try { localStorage.removeItem(CAMERA_KEY); } catch (error) { /* ignore */ }
+  }
+
+  function videoConstraints(deviceId) {
+    const size = { width: { ideal: 640 }, height: { ideal: 480 } };
+    return deviceId ? { deviceId: { exact: deviceId }, ...size } : { facingMode: "user", ...size };
+  }
+
+  // Camera names are only visible after camera permission, so fill the list
+  // once the video is running.
+  async function listCameras() {
+    if (!cameraChoice || !cameraSelect || !navigator.mediaDevices.enumerateDevices) return;
+    const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+    const cameras = devices.filter(device => device.kind === "videoinput");
+    cameraSelect.replaceChildren();
+    cameras.forEach((camera, index) => {
+      const option = document.createElement("option");
+      option.value = camera.deviceId;
+      option.textContent = camera.label || `Camera ${index + 1}`;
+      cameraSelect.append(option);
+    });
+    const track = stream && stream.getVideoTracks()[0];
+    const current = track && track.getSettings ? track.getSettings().deviceId : null;
+    if (current) cameraSelect.value = current;
+    cameraChoice.hidden = cameras.length < 2;
+  }
+
+  function stopTracks() {
     if (stream) stream.getTracks().forEach(track => track.stop());
     stream = null;
     video.srcObject = null;
+  }
+
+  function stopCamera() {
+    stopTracks();
     panel.hidden = true;
+  }
+
+  async function openStream(deviceId) {
+    stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints(deviceId), audio: false });
+    video.srcObject = stream;
+    await video.play();
+  }
+
+  if (cameraSelect) {
+    cameraSelect.addEventListener("change", async () => {
+      clearError();
+      const deviceId = cameraSelect.value;
+      stopTracks();
+      try {
+        await openStream(deviceId);
+        saveCamera(deviceId);
+      } catch (error) {
+        stopCamera();
+        showError(`Could not open that camera: ${error.message}`);
+      }
+    });
   }
 
   async function startCamera() {
@@ -77,12 +143,16 @@
     }
     panel.hidden = false;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
-        audio: false
-      });
-      video.srcObject = stream;
-      await video.play();
+      const remembered = savedCamera();
+      try {
+        await openStream(remembered);
+      } catch (error) {
+        // The remembered camera is unplugged or gone: use the default one.
+        if (!remembered || error.name === "NotAllowedError") throw error;
+        forgetCamera();
+        await openStream(null);
+      }
+      await listCameras();
     } catch (error) {
       stopCamera();
       if (error.name === "NotAllowedError") throw new Error("Camera permission was denied. Allow camera access in your browser settings and try again.");
