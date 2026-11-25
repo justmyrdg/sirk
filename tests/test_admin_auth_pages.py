@@ -41,9 +41,17 @@ class AdminAuthPageTests(DatabaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.logout()
 
-    def login(self, password="test-password-123", email="admin@example.com"):
-        return self.post("/login", data={"email": email, "password": password,
-                                         "csrf_token": self.token()})
+    def login(self, password="test-password-123", email="admin@example.com", finish=True):
+        """Password step; with finish, also the face step (face check mocked to match)."""
+        response = self.post("/login", data={"email": email, "password": password,
+                                             "csrf_token": self.token()})
+        if finish and response.headers.get("Location", "").endswith("/login/face"):
+            csrf = self.get("/api/admin/bootstrap").get_json()["csrfToken"]
+            with patch.object(face, "verify_face_embedding", return_value=True):
+                done = self.post("/api/login/face", headers={"X-CSRF-Token": csrf},
+                                 json={"faceImage": "ZmFrZS1pbWFnZQ=="})
+            self.assertEqual(done.status_code, 200)
+        return response
 
     def logout(self):
         token = self.token("/admins/new") or self.token()
@@ -70,7 +78,7 @@ class AdminAuthPageTests(DatabaseTestCase):
         self.create_first_admin()
         response = self.login()
         self.assertEqual(response.status_code, 303)
-        self.assertTrue(response.headers["Location"].endswith("/"))
+        self.assertTrue(response.headers["Location"].endswith("/login/face"))
         self.assertEqual(self.get("/admins/new").status_code, 200)
         self.assertEqual(self.logout().status_code, 303)
         signed_out = self.get("/admins/new")
@@ -101,7 +109,11 @@ class AdminAuthPageTests(DatabaseTestCase):
     def test_camera_pages_have_flow_and_csrf_meta(self):
         self.assertIn('data-flow="setup"', self.get("/setup").get_data(as_text=True))
         self.create_first_admin()
-        self.assertIn('data-flow="login"', self.get("/login").get_data(as_text=True))
+        self.assertNotIn('data-flow="login"', self.get("/login").get_data(as_text=True))
+        self.login(finish=False)
+        face_step = self.get("/login/face").get_data(as_text=True)
+        self.assertIn('data-flow="login"', face_step)
+        self.assertIn('<meta name="csrf-token"', face_step)
         self.login()
         # Both pages start at step 1, "confirm it's you" (see tests/test_step_up.py for step 2).
         for path, flow in (("/admins/new", "verify"), ("/account/face", "verify")):

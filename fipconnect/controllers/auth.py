@@ -2,7 +2,6 @@
 Every route here answers only on the admin host."""
 
 from flask import Blueprint, current_app, jsonify, request, session
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash
 
@@ -17,6 +16,7 @@ from fipconnect.services.security import (
     api_error,
     csrf_token,
     current_admin,
+    pending_admin,
     require_csrf,
     sign_in,
     valid_admin_email,
@@ -27,6 +27,7 @@ bp = Blueprint("auth", __name__)
 INVALID_ACCOUNT = "Enter a valid email and a password with at least 8 characters."
 SETUP_DONE = "Administrator setup has already been completed."
 CONFIRM_FIRST = "Confirm it's you first."
+SIGN_IN_TIMED_OUT = "Sign-in timed out. Enter your password again."
 RESET_NEEDS_OPERATOR = (
     "Your saved face can't be checked, so a face reset must first be allowed on the server: "
     "flask --app app allow-face-reset YOUR-EMAIL"
@@ -147,28 +148,22 @@ def login_face():
     csrf_failure = require_csrf()
     if csrf_failure:
         return csrf_failure
+    # Step 2 of signing in: the password was accepted (pending sign-in); the
+    # photo must match that account's own saved face.
+    admin = pending_admin()
+    if admin is None or not step_up.has_usable_face(admin):
+        return api_error(SIGN_IN_TIMED_OUT, 401)
+    locked = locked_response(admin)
+    if locked:
+        return locked
+    admin_id = admin.id
     payload = request.get_json(silent=True) or {}
-    admins = db.session.scalars(select(Admin).order_by(Admin.id)).all()
-    candidates = [
-        admin for admin in admins
-        if admin.face_embedding and admin.face_model == face.FACE_MODEL
-    ]
-    if not candidates:
-        if admins:
-            return api_error(
-                "No compatible administrator face template is enrolled. Sign in with your email and password, then select “Re-enroll face”.",
-                409,
-            )
-        return api_error("No administrator face template is enrolled.", 401)
     try:
-        embeddings = [
-            face.decrypt_face_embedding(current_app.secret_key, admin.face_embedding)
-            for admin in candidates
-        ]
+        own_embedding = face.decrypt_face_embedding(current_app.secret_key, admin.face_embedding)
         db.session.rollback()
-        matched_index = face.match_face_embedding(
+        verified = face.verify_face_embedding(
             payload.get("faceImage"),
-            embeddings,
+            own_embedding,
             current_app.config["FACE_SERVICE_URL"],
             face.face_service_token(current_app.secret_key),
         )
@@ -176,12 +171,13 @@ def login_face():
         return api_error(str(error), 400)
     except RuntimeError as error:
         return api_error(str(error), 503)
-    if matched_index is None:
-        return api_error(
-            "Face not recognized. Please try again or sign in with your email and password.",
-            401,
-        )
-    admin = db.session.get(Admin, candidates[matched_index].id)
+    admin = db.session.get(Admin, admin_id)
+    if admin is None:
+        return api_error(SIGN_IN_TIMED_OUT, 401)
+    if not verified:
+        step_up.record_failure(admin)
+        return api_error("Face not recognized. Please try again.", 401)
+    step_up.clear_failures(admin)
     return jsonify({"ok": True, "csrfToken": sign_in(admin)})
 
 

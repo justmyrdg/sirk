@@ -18,6 +18,7 @@
     verify: "/api/admin/verify-face"
   };
   const CONFIRM_FIRST = "Confirm it's you first.";
+  const SIGN_IN_TIMED_OUT = "Sign-in timed out. Enter your password again.";
   const trigger = document.querySelector("[data-flow]");
   if (!trigger) return;
 
@@ -168,6 +169,8 @@
       showError(error.message);
       // The 5-minute confirmation ran out: go back to step 1.
       if (error.message === CONFIRM_FIRST) setTimeout(() => window.location.reload(), 2000);
+      // The 5 minutes after the password ran out: enter the password again.
+      if (error.message === SIGN_IN_TIMED_OUT) setTimeout(() => window.location.assign("/login?expired=1"), 2000);
     } finally {
       action.disabled = false;
     }

@@ -5,16 +5,14 @@
   <section class="auth-card">
     <span class="eyebrow">FIP team access</span>
     <h1>Welcome back.</h1>
-    <p>Sign in with your username and password, or use facial recognition.</p>
+    <p>Sign in with your email and password. You'll then scan your face.</p>
     {{ notices(error) }}
     <form method="post" action="/login">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="field"><label for="login-email">Username / email</label><input id="login-email" name="email" type="email" required autocomplete="username" value="{{ email }}"></div>
       <div class="field"><label for="login-password">Password</label><input id="login-password" name="password" type="password" required autocomplete="current-password"></div>
-      <button class="button">Sign in with username and password</button>
+      <button class="button">Continue</button>
     </form>
-    <button class="button button-quiet auth-face" type="button" data-flow="login" data-next="/">Sign in with facial recognition</button>
-    {% include "partials/face_camera.html" %}
   </section>
 </main>
 {% endblock %}

@@ -59,11 +59,21 @@ class FIPConnectAppTests(DatabaseTestCase):
         self.csrf = self.admin_csrf()
         return response
 
-    def form_login(self, email, password):
+    def form_login(self, email, password, face_matches=True):
+        """Password, then (for accounts with a usable face) the face step.
+        Returns the password response; self.face_verify is the face check's mock."""
         response = self.admin.post(
             "/login", data={"email": email, "password": password, "csrf_token": self.page_token()}
         )
         self.csrf = self.admin_csrf()
+        self.face_verify = None
+        if response.headers.get("Location", "").endswith("/login/face"):
+            with patch.object(face, "verify_face_embedding", return_value=face_matches) as verify:
+                self.face_response = self.admin.post(
+                    "/api/login/face", headers=self.headers(), json={"faceImage": "ZmFrZS1pbWFnZQ=="}
+                )
+            self.face_verify = verify
+            self.csrf = self.admin_csrf()
         return response
 
     def confirm_its_me(self):
@@ -126,14 +136,6 @@ class FIPConnectAppTests(DatabaseTestCase):
             Admin.query.one().face_model = "Facenet512"
             db.session.commit()
         self.form_logout()
-
-        legacy_face_login = self.admin.post(
-            "/api/login/face",
-            headers=self.headers(),
-            json={"faceImage": "ZmFrZS1pbWFnZQ=="},
-        )
-        self.assertEqual(legacy_face_login.status_code, 409)
-        self.assertIn("password", legacy_face_login.get_json()["error"])
 
         signed_in = self.form_login("admin@example.com", "test-password-123")
         self.assertEqual(signed_in.status_code, 303)
@@ -209,19 +211,10 @@ class FIPConnectAppTests(DatabaseTestCase):
         signed_in = self.form_login("SECOND@example.com", "second-password-123")
         self.assertEqual(signed_in.status_code, 303)
         self.assertIn("Good day, second@example.com.", self.admin.get("/").get_data(as_text=True))
-        self.form_logout()
-        with patch.object(
-            face, "match_face_embedding", return_value=1
-        ) as match:
-            face_signed_in = self.admin.post(
-                "/api/login/face",
-                headers=self.headers(),
-                json={"faceImage": "ZmFrZS1pbWFnZQ=="},
-            )
-        self.assertEqual(face_signed_in.status_code, 200)
-        self.assertEqual(match.call_args.args[1], [[0.1] * 128, [0.2] * 128])
-        self.csrf = face_signed_in.get_json()["csrfToken"]
-        self.assertIn("Good day, second@example.com.", self.admin.get("/").get_data(as_text=True))
+        # The face step checks only the second admin's own template.
+        self.assertEqual(self.face_response.status_code, 200)
+        self.face_verify.assert_called_once()
+        self.assertEqual(self.face_verify.call_args.args[1], [0.2] * 128)
 
     def test_admin_setup_requires_face_capture(self):
         response = self.admin.post(
@@ -317,33 +310,24 @@ class FIPConnectAppTests(DatabaseTestCase):
         )
         self.assertEqual(missing_csrf.status_code, 400)
 
-    def test_admin_can_sign_in_with_face_recognition(self):
+    def test_face_alone_does_not_sign_in(self):
         self.setup_admin()
         self.form_logout()
-        with patch.object(
-            face, "match_face_embedding", return_value=0
-        ) as match:
-            signed_in = self.admin.post(
-                "/api/login/face",
-                headers=self.headers(),
-                json={"faceImage": "ZmFrZS1pbWFnZQ=="},
-            )
-        match.assert_called_once()
-        self.assertEqual(signed_in.status_code, 200)
-        self.assertEqual(match.call_args.args[1], [[0.1] * 128])
-        self.csrf = signed_in.get_json()["csrfToken"]
-        self.assertEqual(self.admin.get("/admins/new").status_code, 200)
-
-    def test_unmatched_face_does_not_create_admin_session(self):
-        self.setup_admin()
-        self.form_logout()
-        with patch.object(face, "match_face_embedding", return_value=None):
+        with patch.object(face, "verify_face_embedding", return_value=True) as verify:
             denied = self.admin.post(
                 "/api/login/face",
                 headers=self.headers(),
                 json={"faceImage": "ZmFrZS1pbWFnZQ=="},
             )
+        verify.assert_not_called()
         self.assertEqual(denied.status_code, 401)
+        self.assertIn(self.admin.get("/admins/new").status_code, (302, 303))
+
+    def test_unmatched_face_does_not_create_admin_session(self):
+        self.setup_admin()
+        self.form_logout()
+        self.form_login("admin@example.com", "test-password-123", face_matches=False)
+        self.assertEqual(self.face_response.status_code, 401)
         self.assertIn(self.admin.get("/admins/new").status_code, (302, 303))
 
     def test_admin_can_sign_in_with_email_and_password(self):

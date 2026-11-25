@@ -3,6 +3,7 @@
 import ipaddress
 import re
 import secrets
+import time
 from functools import wraps
 from urllib.parse import urlsplit
 
@@ -61,6 +62,33 @@ def sign_in(admin):
     session.clear()
     session["admin_id"] = admin.id
     return csrf_token()
+
+
+# ---- Pending sign-in: password accepted, face scan still to do ---------------
+# The session holds no admin_id yet, so every admin guard treats it as signed out.
+
+PENDING_WINDOW = 300  # seconds to finish the face scan after the password
+
+
+def now():
+    return time.time()
+
+
+def begin_pending(admin):
+    session.clear()
+    session["pending_admin_id"] = admin.id
+    session["pending_at"] = now()
+    return csrf_token()
+
+
+def pending_admin():
+    admin_id = session.get("pending_admin_id")
+    started = session.get("pending_at")
+    if not isinstance(admin_id, int) or not isinstance(started, (int, float)):
+        return None
+    if now() - started >= PENDING_WINDOW:
+        return None
+    return db.session.get(Admin, admin_id)
 
 
 def csrf_token():

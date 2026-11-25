@@ -122,17 +122,16 @@ class ImportTests(DatabaseTestCase):
             "/login", data={"email": "admin@example.com", "password": "pw-123456",
                             "csrf_token": page_token("/login")}, **base,
         )
-        self.assertEqual(signed_in.status_code, 303)
-        self.assertEqual(client.get("/admins/new", **base).status_code, 200)
-        client.post("/logout", data={"csrf_token": page_token("/admins/new")}, **base)
+        self.assertTrue(signed_in.headers["Location"].endswith("/login/face"))
         csrf = client.get("/api/admin/bootstrap", **base).get_json()["csrfToken"]
-        with patch.object(face, "match_face_embedding", return_value=0) as match:
+        with patch.object(face, "verify_face_embedding", return_value=True) as verify:
             face_login = client.post(
                 "/api/login/face", headers={"X-CSRF-Token": csrf},
                 json={"faceImage": "ZmFrZS1pbWFnZQ=="}, **base,
             )
         self.assertEqual(face_login.status_code, 200)
-        self.assertEqual(match.call_args.args[1], [[0.1] * 128])
+        self.assertEqual(verify.call_args.args[1], [0.1] * 128)
+        self.assertEqual(client.get("/admins/new", **base).status_code, 200)
 
     def test_import_accepts_legacy_single_admin_key(self):
         data = export_file()

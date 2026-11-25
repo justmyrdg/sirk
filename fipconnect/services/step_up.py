@@ -68,6 +68,13 @@ def record_failure(admin):
     db.session.commit()
 
 
+def clear_failures(admin):
+    """Reset the attempt counter without granting a confirmation (used by sign-in)."""
+    admin.step_up_failures = 0
+    admin.step_up_locked_until = None
+    db.session.commit()
+
+
 # ---- password fallback permission -------------------------------------------
 
 def reset_allowed(admin):

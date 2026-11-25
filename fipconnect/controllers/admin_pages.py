@@ -7,10 +7,14 @@ from fipconnect.services.accounts import admin_count, authenticate
 from fipconnect.services.security import (
     SESSION_EXPIRED,
     admin_page_host,
+    begin_pending,
     current_admin,
     page_admin_required,
+    pending_admin,
     sign_in,
 )
+
+SIGN_IN_TIMED_OUT = "Sign-in timed out. Enter your password again."
 
 bp = Blueprint("admin_pages", __name__)
 
@@ -31,7 +35,8 @@ def login():
         return redirect("/setup", code=303)
     if current_admin() is not None:
         return redirect("/", code=303)
-    return admin_page("admin/login.html", email="")
+    error = SIGN_IN_TIMED_OUT if request.args.get("expired") == "1" else None
+    return admin_page("admin/login.html", email="", error=error)
 
 
 @bp.post("/login")
@@ -43,8 +48,22 @@ def login_submit():
     admin = authenticate(email, request.form.get("password", ""))
     if admin is None:
         return admin_page("admin/login.html", 401, email=email, error="Incorrect email or password.")
+    if step_up.has_usable_face(admin):
+        # The password alone doesn't sign in: a face scan finishes it.
+        begin_pending(admin)
+        return redirect("/login/face", code=303)
     sign_in(admin)
     return redirect("/", code=303)
+
+
+@bp.get("/login/face")
+@admin_page_host
+def login_face_page():
+    if current_admin() is not None:
+        return redirect("/", code=303)
+    if pending_admin() is None:
+        return redirect("/login?expired=1", code=303)
+    return admin_page("admin/login_face.html")
 
 
 @bp.post("/logout")
