@@ -142,6 +142,15 @@ class AdminAuthPageTests(DatabaseTestCase):
         self.assertRegex(script, r"try\s*\{\s*(return\s+)?localStorage\.getItem")
         self.assertRegex(script, r"try\s*\{\s*localStorage\.setItem")
 
+    def test_busy_camera_falls_back_and_keeps_the_picker(self):
+        # "Device in use" (NotReadableError): try the other cameras, and if none
+        # opens, keep the panel and camera list visible so another can be chosen.
+        script = (ROOT / "admin_static" / "admin.js").read_text(encoding="utf-8")
+        self.assertIn("NotReadableError", script)
+        self.assertIn("async function openAnyCamera", script)
+        self.assertIn("is being used by another app", script)
+        self.assertNotIn("Could not open the camera: ${error.message}", script)
+
     def test_logout_with_stale_token_still_signs_out(self):
         self.create_first_admin()
         self.login()

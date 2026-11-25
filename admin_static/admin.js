@@ -131,10 +131,46 @@
         await openStream(deviceId);
         saveCamera(deviceId);
       } catch (error) {
-        stopCamera();
-        showError(`Could not open that camera: ${error.message}`);
+        // Keep the panel and list so yet another camera can be picked.
+        showError(cameraMessage(error));
       }
     });
+  }
+
+  function cameraMessage(error) {
+    if (error.name === "NotAllowedError") return "Camera permission was denied. Allow camera access in your browser settings and try again.";
+    if (error.name === "NotFoundError" || error.name === "OverconstrainedError") return "No camera was found on this device.";
+    if (error.name === "NotReadableError" || error.name === "AbortError") {
+      return "That camera is being used by another app (for example Zoom, Teams, the Camera app, or this site in another tab). Close it, or choose another camera.";
+    }
+    return `Could not open the camera (${error.message}). Choose another camera or try again.`;
+  }
+
+  // Open the remembered camera (or the default one). If it is busy or gone,
+  // try each of the other cameras before giving up.
+  async function openAnyCamera() {
+    const preferred = savedCamera();
+    let lastError;
+    try {
+      await openStream(preferred);
+      return;
+    } catch (error) {
+      if (error.name === "NotAllowedError") throw error;
+      lastError = error;
+    }
+    const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+    const others = devices
+      .filter(device => device.kind === "videoinput" && device.deviceId && device.deviceId !== preferred);
+    for (const camera of others) {
+      try {
+        await openStream(camera.deviceId);
+        return;
+      } catch (error) {
+        if (error.name === "NotAllowedError") throw error;
+        lastError = error;
+      }
+    }
+    throw lastError;
   }
 
   async function startCamera() {
@@ -143,21 +179,15 @@
     }
     panel.hidden = false;
     try {
-      const remembered = savedCamera();
-      try {
-        await openStream(remembered);
-      } catch (error) {
-        // The remembered camera is unplugged or gone: use the default one.
-        if (!remembered || error.name === "NotAllowedError") throw error;
-        forgetCamera();
-        await openStream(null);
-      }
+      await openAnyCamera();
       await listCameras();
     } catch (error) {
-      stopCamera();
-      if (error.name === "NotAllowedError") throw new Error("Camera permission was denied. Allow camera access in your browser settings and try again.");
-      if (error.name === "NotFoundError") throw new Error("No camera was found on this device.");
-      throw new Error(`Could not open the camera: ${error.message}`);
+      stopTracks();
+      // Permission denied: nothing else will work. Otherwise keep the panel
+      // and the camera list open so another camera can be chosen.
+      if (error.name === "NotAllowedError") stopCamera();
+      else await listCameras();
+      throw new Error(cameraMessage(error));
     }
   }
 
