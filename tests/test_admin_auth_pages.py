@@ -151,6 +151,11 @@ class AdminAuthPageTests(DatabaseTestCase):
         self.assertIn("is being used by another app", script)
         self.assertNotIn("Could not open the camera: ${error.message}", script)
 
+    def test_camera_that_opened_is_remembered(self):
+        # Whichever camera ends up open (picked, or the fallback) is used first next time.
+        script = (ROOT / "admin_static" / "admin.js").read_text(encoding="utf-8")
+        self.assertRegex(script, r"await openAnyCamera\(\);\s*await listCameras\(\);\s*rememberOpenCamera\(\);")
+
     def test_logout_with_stale_token_still_signs_out(self):
         self.create_first_admin()
         self.login()

@@ -173,6 +173,14 @@
     throw lastError;
   }
 
+  // Use the camera that actually opened first next time (so a camera that was
+  // picked automatically because another was busy also sticks).
+  function rememberOpenCamera() {
+    const track = stream && stream.getVideoTracks()[0];
+    const deviceId = track && track.getSettings ? track.getSettings().deviceId : null;
+    if (deviceId) saveCamera(deviceId);
+  }
+
   async function startCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error("The camera is unavailable. Open the site over HTTPS or localhost and allow camera access.");
@@ -181,6 +189,7 @@
     try {
       await openAnyCamera();
       await listCameras();
+      rememberOpenCamera();
     } catch (error) {
       stopTracks();
       // Permission denied: nothing else will work. Otherwise keep the panel
