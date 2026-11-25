@@ -67,3 +67,15 @@ class StatusEmailTests(DatabaseTestCase):
         html, plain = self.parts(self.send())
         self.assertIn("December 16, 2026", html.get_content())
         self.assertIn("December 16, 2026", plain.get_content())
+
+    def test_every_status_gets_the_same_design(self):
+        from fipconnect.services.inquiries import STATUSES
+        for status in STATUSES:
+            with self.subTest(status=status):
+                message = self.send(status)
+                body = self.parts(message)[0].get_content()
+                self.assertIn(notifications.HEADLINES[status], body)
+                self.assertIn(notifications.STATUS_COLOURS[status]["text"], body)
+                self.assertIn("Track your inquiry", body)
+                self.assertEqual(
+                    sum(part.get_content_type() == "image/png" for part in message.walk()), 1)
